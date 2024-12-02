@@ -1,0 +1,17 @@
+body {
+  margin: 0;
+  font-family: "Figtree", sans-serif;
+}
+
+p {
+  font-size: x-small;
+}
+
+.App {
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
