@@ -1,24 +1,45 @@
 import React from 'react';
-import './App.css';
-import mondaySdk from 'monday-sdk-js';
-import 'monday-ui-react-core/dist/main.css';
-import Button from 'monday-ui-react-core/dist/Button.js';
-import Loader from 'monday-ui-react-core/dist/Loader.js';
-import AttentionBox from 'monday-ui-react-core/dist/AttentionBox.js';
-import _, { create } from 'lodash';
-import moment from 'moment-timezone';
+import _ from 'lodash';
 
-const monday = mondaySdk({ apiVersion: '2023-10' });
-monday.setToken(
-  'eyJhbGciOiJIUzI1NiJ9.eyJ0aWQiOjIyNTk5MjQ5NCwiYWFpIjoxMSwidWlkIjozMTc0MjU2NywiaWFkIjoiMjAyMy0wMS0xOVQxNzo0NTowOS4wMDBaIiwicGVyIjoibWU6d3JpdGUiLCJhY3RpZCI6MTE4MjQwMzIsInJnbiI6InVzZTEifQ.f7cLiwfdIsuL15yVD0QFnm06JUCIIutMojHSyEJ63Ls'
-);
-const TimepunchCurrentColumnID = 'text9';
-const EmployeesBoardID = 2772063654;
-const PeopleColumnID = 'person';
+import { Loading } from './components/Loading';
+import { Error } from './components/Error';
+import { Logs } from './components/Logs';
+import { Version } from './components/Version';
+import { ActiveTask } from './components/ActiveTask';
+import {
+  ActionButton,
+  BACKGROUND_COLORS,
+  BUTTON_TYPES,
+} from './components/ActionButton';
+
+import { ENV, IDLE_NAME } from './config/constants';
+import {
+  DEFAULT_ERROR,
+  ERROR_CAN_NOT_GET_ITEM,
+  ERROR_CONFIGURATION,
+  ERROR_IDLE_ITEM_IS_ABSENT,
+  ERROR_NO_LINKED_PUBCH_BOARD,
+  ERROR_SETTINGS_WERE_NOT_CONFIGURED,
+  ERROR_START_OR_END_ELEMENT_IS_ABSENT,
+  ERROR_TIMEPUNCH_WAS_NOT_SAVED,
+  ERROR_WRONG_ENVIRONMENT,
+} from './config/errors';
+import { PublicError } from './errors/PublicError';
+import { fetchHook } from './api/fetchHook';
+import { MondayApi } from './services/monday/api';
+import { Logger } from './services/logger';
+import { mapItem } from './utils/mappers';
+import { getMondayDateObject } from './utils/utils';
+
+import 'monday-ui-react-core/dist/main.css';
+import './App.css';
 
 class App extends React.Component {
   constructor(props) {
     super(props);
+
+    this.logger = new Logger();
+    this.monday = new MondayApi(this.logger);
 
     // Default state
     this.state = {
@@ -26,769 +47,537 @@ class App extends React.Component {
       end: '',
       itemId: '',
       itemName: '',
-      time: '',
       loaded: false,
       idleLoaded: false,
       nextLoaded: false,
       startTimestamp: null,
       endTimestamp: null,
       columnValues: [],
-      currentTask: '{}',
+      currentTask: {},
       userId: '',
       boardId: '',
-      idleValue: 'Idle',
       idleItemId: '',
       isIdle: false,
+      nextItemName: '',
       nextItemId: '',
       error: false,
+      errorMessage: '',
       logger: false,
-      clock: moment().tz('America/Chicago').format('MMM Do h:mm:ss a'),
       version: '',
       userPunchesBoardID: '',
     };
   }
 
+  // @done & @todos
   componentDidMount() {
-    monday.listen('settings', (res) => {
-      this.setState({ logger: res.data.logger });
-      if (!res.data.start || !res.data.end) {
-        this.setState({ error: true });
-      } else
-        this.setState({
-          error: false,
-          start: Object.keys(res.data.start)[0],
-          end: Object.keys(res.data.end)[0],
-          logger: res.data.logger,
-        });
-    });
-    this.loadData();
-    this.interval = setInterval(() => {
-      this.tick();
-    }, 1000);
-  }
-
-  sleep = (time) => {
-    return new Promise((resolve) => setTimeout(resolve, time));
-  };
-
-  tick() {
-    this.setState({
-      clock: moment().tz('America/Chicago').format('MMM Do h:mm:ss a'),
-    });
-  }
-
-  componentWillUnmount() {
-    clearInterval(this.timerID);
-  }
-
-  loadData = async (itemId) => {
-    monday
-      .get('context')
-      .then((res) => {
-        this.setState({
-          itemId: res.data.itemId,
-          boardId: res.data.boardId,
-          userId: res.data.user.id,
-          theme: res.data.theme,
-          version: `${res.data.appVersion.versionData.major}.${res.data.appVersion.versionData.minor}`,
-        });
-        return res.data.boardId;
-      })
-      .then(() =>
-        monday.storage.instance
-          .getItem(this.state.userId)
-          .then((storageResult) => {
-            // console.log('getItem', storageResult);
-            if (!!storageResult.data.value) {
-              if (!!JSON.parse(storageResult.data.value).id) {
-                let getItemId = JSON.parse(storageResult.data.value).id;
-                // console.log('getItemId?', getItemId);
-                this.getDates(this.state.start, this.state.end, getItemId).then(
-                  (date_res) => {
-                    // console.log('get dates', date_res);
-                    // console.log('state', JSON.stringify(this.state));
-                    // check if start exists or was deleted by user / automation
-                    if (
-                      !!date_res.data.items[0].column_values[0].text &&
-                      !date_res.data.items[0].column_values[1].text
-                    ) {
-                      // console.log('i am here', JSON.parse(storageResult.data.value).id, this.state.idleItemId);
-                      this.setState({
-                        currentTask: storageResult.data.value,
-                        startTimestamp:
-                          date_res.data.items[0].column_values[0].text,
-                        endTimestamp: undefined,
-                      });
-                      if (
-                        JSON.parse(storageResult.data.value).id ===
-                        this.state.idleItemId
-                      ) {
-                        // console.log('idle set to true');
-                        this.setState({ isIdle: true });
-                      }
-                    }
-                    // if (!!date_res.data.items[0].column_values[0].text) this.setState({ currentTask: res.data.value })
-                    else {
-                      // console.log('setting current to {} from Load!');
-                      this.setState({ currentTask: JSON.stringify({}) });
-                      monday.storage.instance.setItem(this.state.userId, '{}');
-                    }
-                  }
-                );
-              } else this.setState({ currentTask: storageResult.data.value });
-            }
-          })
-      )
-      .then((boardId) => {
-        if (!this.state.error) {
-          let itemId =
-            this.state.currentTask &&
-            JSON.parse(this.state.currentTask).name === 'Idle'
-              ? JSON.parse(this.state.currentTask).id
-              : this.state.itemId;
-          this.getIdleColumnNew();
-          this.getAndSetDateValues(this.state.start, this.state.end, itemId);
-          this.setItemName(this.state.itemId);
-        } else this.setState({ loaded: true, idleLoaded: true });
-      })
-      .then(() => this.getUserBoardId())
-      .then((res) => {
-        // console.log('Console:', res);
-        this.setState({
-          userPunchesBoardID:
-            res.data.items_page_by_column_values.items[0].column_values[0]
-              .value,
-        });
-      })
-      .then(() => this.getNextItemIdNew(this.state.boardId));
-  };
-
-  componentWillUnmount() {
-    // delete the interval just before component is removed
-    clearInterval(this.update);
-  }
-
-  getAndSetDateValues = async (startColumnId, endColumnId, itemId) => {
-    itemId =
-      this.state.currentTask &&
-      JSON.parse(this.state.currentTask).name === 'Idle'
-        ? JSON.parse(this.state.currentTask).id
-        : itemId;
-    // console.log('item id?????', itemId);
-    monday
-      .api(
-        `query { items(ids:${itemId}) { name column_values(ids:["${startColumnId}","${endColumnId}"]) { id value } subitems { id column_values { type value } } } }`
-      )
-      .then((res) => {
-        let columnValues = res.data.items[0].column_values;
-        let subitemValues = res.data.items[0].subitems;
-        let startElement = _.find(
-          columnValues,
-          (cv) => cv.id === startColumnId
-        );
-        let endElement = _.find(columnValues, (cv) => cv.id === endColumnId);
-        let itemName = res.data.items[0].name;
-        if (itemName !== 'Idle') this.setState({ itemName });
-        if (!startElement || !endElement) {
-          this.setState({ error: true, loaded: true, idleLoaded: true });
+    this.catchError(async () => {
+      await this.monday.listen('settings', (res) => {
+        this.logger.highlight('settings', res);
+        if (ENV === 'production') {
+          if (!res.data.start || !res.data.end) {
+            this.changeState({ logger: res.data.logger });
+            this.setError(ERROR_SETTINGS_WERE_NOT_CONFIGURED);
+          } else {
+            this.clearError();
+            this.changeState({
+              start: Object.keys(res.data.start)[0],
+              end: Object.keys(res.data.end)[0],
+              logger: res.data.logger,
+            });
+          }
         } else {
-          let startValue = _.find(
-            columnValues,
-            (cv) => cv.id === startColumnId
-          ).value;
-          let endValue = _.find(
-            columnValues,
-            (cv) => cv.id === endColumnId
-          ).value;
-          let startTimestamp = !!startValue
-            ? JSON.parse(startValue).time
-            : null;
-          let endTimestamp = !!endValue ? JSON.parse(endValue).time : null;
-          // console.log('set current task', this.state.currentTask);
-          this.setState({
-            startTimestamp,
-            endTimestamp,
-            columnValues,
-            subitemValues,
-            loaded: true,
-            idleLoaded: true,
+          this.clearError();
+          this.changeState({
+            start: 'date',
+            end: 'dup__of_start',
+            logger: true,
           });
-          this.setState({
-            columnValues,
-            subitemValues,
-            loaded: true,
-            idleLoaded: true,
-          });
-          this.setState({
-            isIdle:
-              this.state.currentTask &&
-              startTimestamp &&
-              JSON.parse(this.state.currentTask).name === 'Idle',
-          });
-          return columnValues;
+          this.logger.turnOn();
         }
       });
-  };
+      await this.loadContext();
+      await Promise.all([
+        this.loadPunchBoard(),
+        this.loadIdleColumn(),
+        this.loadData(),
+        this.getNextItemId(),
+        this.setItemName(),
+      ]);
+    });
+  }
 
-  getUserBoardId = async () => {
-    return monday.api(
-      `query {
-      items_page_by_column_values (limit: 1, board_id: ${EmployeesBoardID}, columns: [{column_id: "${PeopleColumnID}", column_values: ["${this.state.userId}"]}]) {
-        cursor
-        items {
-          column_values(ids:"${TimepunchCurrentColumnID}") {
-            id
-            value
-          }
-        }
+  // @done
+  async catchError(callback, defaultMessage, showErrorNotice = false) {
+    try {
+      if (this.error) {
+        this.logger.log('Error is already exist. No need in teh next actions.');
+        return;
       }
-    }`,
-      { apiVersion: '2023-10' }
-    );
-  };
+      await callback();
+    } catch (error) {
+      const errorMessage = this.getErrorMessage(error, defaultMessage);
 
-  createPunch = async (itemName, columnValues) => {
-    const mutation = `mutation create_item($boardId: ID!, $itemName: String!, $columnValue: JSON) {
-      create_item(board_id:$boardId, item_name:$itemName, column_values:$columnValue, create_labels_if_missing: true) {
-          id
-      }
-    }`;
-    const variables = {
-      boardId: JSON.parse(this.state.userPunchesBoardID),
-      itemName,
-      columnValue: JSON.stringify(columnValues),
-    };
-    return monday.api(mutation, { apiVersion: '2023-10', variables });
-  };
+      this.logger.error(error);
+      this.setError(errorMessage);
 
-  getItemAndPunch = async (itemId, dataObject, nextItem) => {
-    let query = `query {
-      items (ids: ${itemId}) {
-        name
-        column_values {
-          id
-          value
-          text
-          ...on MirrorValue {
-            display_value
-            id
-            value
-          }
-        }
+      if (showErrorNotice) {
+        await this.monday.errorNotice(errorMessage);
       }
     }
-      `;
-    fetch('https://api.monday.com/v2', {
-      method: 'post',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization:
-          'eyJhbGciOiJIUzI1NiJ9.eyJ0aWQiOjIyNTk5MjQ5NCwiYWFpIjoxMSwidWlkIjozMTc0MjU2NywiaWFkIjoiMjAyMy0wMS0xOVQxNzo0NTowOS4wMDBaIiwicGVyIjoibWU6d3JpdGUiLCJhY3RpZCI6MTE4MjQwMzIsInJnbiI6InVzZTEifQ.f7cLiwfdIsuL15yVD0QFnm06JUCIIutMojHSyEJ63Ls',
-        'API-Version': '2023-10',
-      },
-      body: JSON.stringify({
-        query: query,
-      }),
-    })
-      .then((res) => res.json())
-      .then((res) => {
-        let columnData = res.data.items[0].column_values;
-        let itemName = res.data.items[0].name;
-        let start = JSON.parse(
-          _.find(columnData, (item) => item.id === 'date').value
-        );
-        let end = JSON.parse(
-          _.find(columnData, (item) => item.id === 'dup__of_start').value
-        );
-        delete start.changed_at;
-        delete end.changed_at;
-        // console.log('API Result', JSON.stringify(res));
-        console.log(
-          _.find(columnData, (item) => item.id === 'dup__of_pod').text
-        );
-        return {
-          name: res.data.items[0].name,
-          cv: {
-            dropdown3: {
-              labels: [
-                _.find(columnData, (item) => item.id === 'mirror0')
-                  .display_value,
-              ],
-            }, // Account
-            dup__of_account_name6: {
-              labels: [
-                _.find(columnData, (item) => item.id === 'mirror3')
-                  .display_value,
-              ],
-            }, // Opportunity
-            dup__of_account_name: {
-              labels: [
-                _.find(columnData, (item) => item.id === 'mirror81')
-                  .display_value,
-              ],
-            }, // PID
-            label_1: {
-              label: _.find(columnData, (item) => item.id === 'dup__of_pid')
-                .text,
-            }, // Pod
-            status59: {
-              labels: [
-                _.find(columnData, (item) => item.id === 'dropdown').text,
-              ],
-            }, // Team
-            dup__of_pod: {
-              label: _.find(columnData, (item) => item.id === 'dup__of_pod9')
-                .text,
-            }, // Shift
-            label: {
-              label: _.find(columnData, (item) => item.id === 'dup__of_pod')
-                .text,
-            }, // Task
-            numbers1: _.find(
-              columnData,
-              (item) => item.id === 'men__desplegable'
-            ).text, // Frequency
-            status: _.find(columnData, (item) => item.id === 'status').text, // Client
-            texto_largo: _.find(columnData, (item) => item.id === 'text').text,
-            people0: {
-              personsAndTeams: _.find(
-                columnData,
-                (item) => item.id === 'dup__of_cfm'
-              ).value
-                ? JSON.parse(
-                    _.find(columnData, (item) => item.id === 'dup__of_cfm')
-                      .value
-                  ).personsAndTeams
-                : null,
-            }, // CS
-            dup__of_cs: {
-              personsAndTeams: _.find(
-                columnData,
-                (item) => item.id === 'person'
-              ).value
-                ? JSON.parse(
-                    _.find(columnData, (item) => item.id === 'person').value
-                  ).personsAndTeams
-                : null,
-            }, // CSM
-            people: {
-              personsAndTeams: _.find(
-                columnData,
-                (item) => item.id === 'dup__of_cs'
-              ).value
-                ? JSON.parse(
-                    _.find(columnData, (item) => item.id === 'dup__of_cs').value
-                  ).personsAndTeams
-                : null,
-            }, // AS
-            date: start, // Start Time date
-            date_1: end, // End Time
-          },
-        };
-      })
-      .then((res) => this.createPunch(res.name, res.cv))
-      .then((res) => {
-        // console.log('res',res);
-        // If start next item was clicked, open the next item card. Otherwise reload
-        if (nextItem)
-          monday.execute('openItemCard', {
-            kind: 'updates',
-            itemId: this.state.nextItemId,
-          });
-        else this.loadData();
-        return res.data.create_item.id;
-      })
-      .catch((err) => {
-        console.log('Error:', err);
-        monday.execute('notice', {
-          message: 'Something happened. Timepunch was not saved.',
-          type: 'error',
-          timeout: 5000,
-        });
-        let dataObject = {
-          itemid: itemId,
-        };
-        const requestOptions = {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(dataObject),
-        };
-        fetch(
-          'https://hook.us1.make.celonis.com/9icnjujhc7vi4ce6ar9cbo9ryyqbib65',
-          requestOptions
-        ).then(() => this.loadData());
+  }
+
+  // @done
+  changeState(values) {
+    this.setState((state) => ({
+      ...state,
+      ...values,
+    }));
+
+    this.logger.stateChange(values);
+  }
+
+  // @done
+  setError(errorMessage) {
+    if (this.state.error === true) {
+      this.logger.highlight('previous error', this.state.errorMessage);
+    }
+    this.changeState({
+      error: true,
+      errorMessage: errorMessage,
+    });
+  }
+
+  // @done
+  clearError() {
+    if (this.state.error === true || !!this.state.errorMessage) {
+      this.changeState({
+        error: false,
+        errorMessage: '',
       });
-  };
+    }
+  }
 
-  getDates = async (startColumnId, endColumnId, itemId) => {
-    // itemId = (this.state.currentTask && JSON.parse(this.state.currentTask).name === 'Idle') ? JSON.parse(this.state.currentTask).id : itemId
-    return monday.api(
-      `query { items(ids:${itemId}) { id column_values(ids:["${startColumnId}","${endColumnId}"]) { id value text } } }`
+  // @done
+  isContextValid(context) {
+    return (
+      !!context &&
+      !!context.data &&
+      !!context.data.itemId &&
+      !!context.data.boardId &&
+      !!context.data.theme &&
+      !!context.data.user?.id &&
+      !!context.data.appVersion.versionData
     );
+  }
+
+  // @done
+  getErrorMessage(error, defaultMessage = DEFAULT_ERROR) {
+    return error instanceof PublicError ? error.message : defaultMessage;
+  }
+
+  // @done
+  loadContext = async () => {
+    const context = await this.monday.getContext();
+    this.logger.highlight('context', context);
+
+    if (!this.isContextValid(context)) {
+      throw new PublicError(ERROR_WRONG_ENVIRONMENT);
+    }
+
+    this.changeState({
+      itemId: context.data.itemId,
+      boardId: context.data.boardId,
+      userId: context.data.user.id,
+      theme: context.data.theme,
+      version: `${context.data.appVersion.versionData.major}.${context.data.appVersion.versionData.minor}`,
+    });
   };
 
-  setItemName = async (itemId) => {
-    return monday
-      .api(`query { items(ids:${itemId}) { name } }`)
-      .then((res) => this.setState({ itemName: res.data.items[0].name }));
+  // @done
+  loadPunchBoard = async () => {
+    const punchBoard = await this.monday.query.getPunchBoard(this.state.userId);
+    const punchBoardId =
+      punchBoard.data?.items_page_by_column_values?.items?.[0]
+        ?.column_values?.[0]?.value;
+    if (!punchBoardId) {
+      throw new PublicError(ERROR_NO_LINKED_PUBCH_BOARD);
+    }
+    this.changeState({
+      userPunchesBoardID: JSON.parse(punchBoardId),
+    });
   };
 
-  getNextItemId = async (boardId) => {
-    monday
-      .api(
-        `query {
-      boards (ids: ${this.state.boardId}) {
-        items { id name }
-      }
-    }`,
-        { apiVersion: '2023-07' }
-      )
-      .then((res) => {
-        let index = _.findIndex(
-          res.data.boards[0].items,
-          (item) => item.id == this.state.itemId
+  // @done
+  reloadData = async () => {
+    return Promise.all([
+      this.loadData(),
+      this.getNextItemId(),
+      this.setItemName(),
+    ]);
+  };
+
+  // @done
+  loadData = async () => {
+    // Current task is stored under userId key in monday.storage
+    const currentTask = await this.monday.getItemFromStorage(
+      this.state.userId,
+      {}
+    );
+
+    // If current task exists in the storage
+    if (!_.isEmpty(currentTask)) {
+      // If current task has an ID inside
+      if (!!currentTask?.id) {
+        const res = await this.monday.query.getDateRangeColumnsByIdsForItem(
+          currentTask.id,
+          this.state.start,
+          this.state.end
         );
-        let nextItem = res.data.boards[0].items[index + 1];
-        this.setState({
-          nextItemName: nextItem ? nextItem.name : '',
-          nextItemId:
-            index === res.data.boards[0].items.length - 1
-              ? ''
-              : res.data.boards[0].items[index + 1].id,
+
+        // check if start exists or was deleted by user / automation
+        const startDate = res.data.items?.[0]?.column_values?.[0]?.text;
+        const endDate = res.data.items?.[0]?.column_values?.[1]?.text;
+
+        this.logger.highlight('dates', {
+          startDate,
+          endDate,
         });
-      })
-      .then(() => this.getNextItemIdNew()); // remove
+
+        // If current task is active
+        if (!!startDate && !endDate) {
+          this.changeState({
+            currentTask: currentTask,
+            startTimestamp: startDate,
+            endTimestamp: undefined,
+          });
+          if (currentTask.id === this.state.idleItemId) {
+            this.logger.highlight('current active task is an IDLE task');
+            this.changeState({ isIdle: true });
+          }
+        } else {
+          // If current task is not active or does not exist
+          this.logger.highlight('setting currentTask to {} from Load!');
+          this.changeState({ currentTask: {} });
+          await this.monday.setItemToStorage(this.state.userId, {});
+        }
+      } else {
+        this.logger.highlight(
+          'Current task is empty. Re-write it in storage to {}'
+        );
+        this.changeState({ currentTask: currentTask });
+      }
+    }
+
+    await this.getAndSetDateValues(
+      this.state.start,
+      this.state.end,
+      currentTask?.name === IDLE_NAME ? currentTask.id : this.state.itemId
+    );
   };
 
-  getNextItemIdNew = async () => {
-    const firstPage = await monday.api(
-      `query {
-      items_page_by_column_values (limit: 100, board_id: ${JSON.parse(
-        this.state.boardId
-      )}, columns: [{column_id: "dup__of_cfm", column_values: ["${
-        this.state.userId
-      }"]}]) {
-        cursor
-        items {
-          id
-          name
-        }
-      }
-    }`,
-      { apiVersion: '2023-10' }
+  // @done
+  getAndSetDateValues = async (startColumnId, endColumnId, itemId) => {
+    const response = await this.monday.query.getDateRangeColumnsByIdsForItem(
+      itemId,
+      startColumnId,
+      endColumnId
     );
-    var cursor = firstPage.data.items_page_by_column_values.cursor;
-    let items = firstPage.data.items_page_by_column_values.items;
+    const columnValues = response.data?.items?.[0]?.column_values;
+    if (!columnValues || !Array.isArray(columnValues)) {
+      throw new PublicError(ERROR_CAN_NOT_GET_ITEM);
+    }
+
+    // const itemName = response.data?.items?.[0]?.name;
+    const startElement = _.find(columnValues, (cv) => cv.id === startColumnId);
+    const endElement = _.find(columnValues, (cv) => cv.id === endColumnId);
+
+    // Columns does not exist
+    if (!startElement || !endElement) {
+      throw new PublicError(ERROR_START_OR_END_ELEMENT_IS_ABSENT);
+    } else {
+      let startValue = startElement?.value;
+      let endValue = endElement?.value;
+      let startTimestamp = !!startValue ? JSON.parse(startValue).time : null;
+      let endTimestamp = !!endValue ? JSON.parse(endValue).time : null;
+
+      this.changeState({
+        startTimestamp,
+        endTimestamp,
+        columnValues,
+        loaded: true,
+        idleLoaded: true,
+        isIdle: startTimestamp && this.state.currentTask?.name === IDLE_NAME,
+      });
+    }
+  };
+
+  // @done & @todos
+  getItemAndPunch = async (itemId) => {
+    try {
+      const itemRes = await this.monday.query.getItemById(itemId);
+      if (!itemRes.data.items?.length) {
+        throw new PublicError(ERROR_CAN_NOT_GET_ITEM);
+      }
+      const { name, cv } = mapItem(
+        itemRes.data.items[0].column_values,
+        itemRes.data.items[0].name
+      );
+      await this.monday.mutation.createPunch(
+        this.state.userPunchesBoardID,
+        name,
+        cv
+      );
+    } catch (error) {
+      await fetchHook({ itemid: itemId });
+      await this.reloadData(); // TODO: Check if we need it
+      throw error;
+    }
+  };
+
+  // @done
+  setItemName = async () => {
+    const res = await this.monday.query.getItemNameById(this.state.itemId);
+    if (!res.data?.items?.[0]?.name) {
+      throw new PublicError(ERROR_CAN_NOT_GET_ITEM);
+    }
+    this.changeState({ itemName: res.data.items[0].name });
+  };
+
+  // @done
+  getNextItemId = async () => {
+    // Current task is stored under userId key in monday.storage
+    const firstPage = await this.monday.query.getItemsPageByColumnValues(
+      JSON.parse(this.state.boardId),
+      this.state.userId
+    );
+    let cursor = firstPage.data?.items_page_by_column_values?.cursor;
+    let items = firstPage.data?.items_page_by_column_values?.items;
 
     while (cursor) {
       // loop will stop when cursor is null
-      const nextPage = await monday.api(
-        `query {
-        next_items_page (cursor:"${cursor}", limit: 100) {
-          cursor
-          items {
-            id
-            name
-          }
-        }
-      }`,
-        { apiVersion: '2023-10' }
-      );
+      const nextPage = await this.monday.query.getNextItemsPage(cursor);
       cursor = nextPage.data.next_items_page.cursor;
       items = _.flatten(_.union(items, nextPage.data.next_items_page.items));
     }
-    // items = items[0];
-    let index = _.findIndex(
+
+    const currentTaskIndex = this.state.currentTask?.id
+      ? _.findIndex(
+          items,
+          (item) => Number(item.id) === Number(this.state.currentTask?.id)
+        )
+      : -1;
+    const currentItemIndex = _.findIndex(
       items,
-      (item) => Number(item.id) === this.state.itemId
+      (item) => Number(item.id) === Number(this.state.itemId)
     );
+    const index =
+      currentItemIndex > currentTaskIndex ? currentItemIndex : currentTaskIndex;
 
-    // curser is flattening
-
-    let nextItem = items[index + 1];
-    this.setState({
+    const nextItem = items[index + 1];
+    this.changeState({
       nextLoaded: true,
       nextItemName: nextItem ? nextItem.name : '',
       nextItemId: index === items.length - 1 ? '' : items[index + 1].id,
     });
   };
 
-  getIdleColumnNew = async () => {
-    monday
-      .api(
-        `query {
-      boards (ids: ${this.state.boardId}) {
-        items_page (query_params: {rules: [{column_id: "name", compare_value: ["Idle"]}, {column_id: "dup__of_cfm", compare_value:["person-${this.state.userId}"], operator:any_of}]}) {
-          cursor
-          items {
-            id
-          }
-        }
-      }
-    }`
-      )
-      .then((res) => {
-        console.log('res', res);
-        let idleItem = res.data.boards[0].items_page.items[0];
-        if (!idleItem) {
-          this.setState({ error: true });
-        } else this.setState({ idleItemId: idleItem.id });
-      });
+  // @done
+  loadIdleColumn = async () => {
+    const res = await this.monday.query.getIdleColumnByBoardId(
+      this.state.boardId,
+      this.state.userId
+    );
+
+    let idleItem = res.data.boards[0].items_page.items[0];
+    if (!idleItem) {
+      throw new PublicError(ERROR_IDLE_ITEM_IS_ABSENT);
+    } else {
+      this.changeState({ idleItemId: idleItem.id });
+    }
   };
 
+  // @done
   timeStampSaved = async () => {
-    monday.execute('notice', {
-      message: 'Timestamp saved!',
-      type: 'success',
-      timeout: 2000,
-    });
+    await this.monday.successNotice('Timestamp saved!');
   };
 
-  changeDateValue = async (columnId, itemId, nextItem) => {
+  // @action & @done
+  changeDateValue = async (columnId, itemId, openNextItemCard = false) => {
     // Check whether a regular timepunch or idle time
-    // console.log('columnid', columnId, this.state.start, itemId);
-    this.setState(
+    this.changeState(
       itemId === this.state.idleItemId
         ? { idleLoaded: false, isIdle: columnId === this.state.start }
         : { loaded: false }
     );
-    // Get date in UTC
-    let dateNow = new Date();
-    let year = dateNow.getFullYear();
-    let month = ('0' + (dateNow.getUTCMonth() + 1)).slice(-2);
-    let day = ('0' + dateNow.getUTCDate()).slice(-2);
-    let hours = ('0' + dateNow.getUTCHours()).slice(-2);
-    let minutes = ('0' + dateNow.getUTCMinutes()).slice(-2);
-    let seconds = ('0' + dateNow.getUTCSeconds()).slice(-2);
 
-    // Construct date object
-    let dateobject = {
-      date: `${year}-${month}-${day}`,
-      time: `${hours}:${minutes}:${seconds}`,
-    };
+    // Construct date object in UTC
+    const dateobject = getMondayDateObject(new Date());
 
-    // Set start/end column value
-    monday
-      .api(
-        `mutation {
-      change_column_value(item_id: ${itemId}, board_id: ${
-          this.state.boardId
-        }, column_id: "${columnId}", value: ${JSON.stringify(
-          JSON.stringify(dateobject)
-        )}) {
-        id
-        name
-      }
-    }`
-      )
+    await this.catchError(
+      async () => {
+        // Set start/end column value
+        const result = await this.monday.mutation.changeColumnValue(
+          this.state.boardId,
+          itemId,
+          columnId,
+          dateobject
+        );
 
-      .then((result) => {
         // If start is clicked
         if (columnId === this.state.start) {
-          monday
-            .api(
-              `mutation {
-          change_column_value(item_id: ${itemId}, board_id: ${this.state.boardId}, column_id: "${this.state.end}", value: "{}") {
-            id
-          }
-        }`
-            )
-            .then((res) => {
-              // console.log('End is set to {}', res)
-              return monday.storage.instance.getItem(this.state.userId);
-            })
-            .then((storage) => {
-              let currentTaskObj = JSON.parse(storage.data.value);
-              // If Start is clicked and current task is empty
-              if (_.isEmpty(currentTaskObj)) {
-                // console.log('start is clicked and current task is empty')
-                monday.storage.instance
-                  .setItem(
-                    this.state.userId,
-                    JSON.stringify(result.data.change_column_value)
-                  )
-                  .then(() =>
-                    this.setState({
-                      currentTask: JSON.stringify(
-                        result.data.change_column_value
-                      ),
-                    })
-                  )
-                  .then(() =>
-                    this.loadData().then(() => {
-                      this.timeStampSaved();
-                    })
-                  );
-              }
-              // If Start is clicked and another current task is being worked on
-              else {
-                // console.log('start is clicked and another task is being worked on')
-                // console.log('setting current task', result.data.change_column_value);
-                monday.storage.instance
-                  .setItem(
-                    this.state.userId,
-                    JSON.stringify(result.data.change_column_value)
-                  )
-                  .then(() => {
-                    monday
-                      .api(
-                        `mutation {
-                change_column_value(item_id: ${currentTaskObj.id}, board_id: ${
-                          this.state.boardId
-                        }, column_id: "${
-                          this.state.end
-                        }", value: ${JSON.stringify(
-                          JSON.stringify(dateobject)
-                        )}) {
-                  id
-                }
-              }`
-                      )
-                      .then((res) => {
-                        // console.log('RES Start & another current',res);
-                        this.getDates(
-                          this.state.start,
-                          this.state.end,
-                          currentTaskObj.id
-                        )
-                          .then((data) => {
-                            let dataObject = {
-                              itemid: data.data.items[0].id,
-                              first: {
-                                id: data.data.items[0].column_values[0].id,
-                                value: JSON.parse(
-                                  data.data.items[0].column_values[0].value
-                                ).date,
-                                time: JSON.parse(
-                                  data.data.items[0].column_values[0].value
-                                ).time,
-                                changed_at: JSON.parse(
-                                  data.data.items[0].column_values[0].value
-                                ).changed_at,
-                              },
-                              second: {
-                                id: data.data.items[0].column_values[1].id,
-                                value: JSON.parse(
-                                  data.data.items[0].column_values[1].value
-                                ).date,
-                                time: JSON.parse(
-                                  data.data.items[0].column_values[0].value
-                                ).time,
-                                changed_at: JSON.parse(
-                                  data.data.items[0].column_values[1].value
-                                ).changed_at,
-                              },
-                            };
-                            return dataObject;
-                          })
-                          .then((dataObject) =>
-                            this.getItemAndPunch(
-                              currentTaskObj.id,
-                              dataObject,
-                              nextItem
-                            )
-                          );
-                      });
-                  });
-              }
+          const res = await this.monday.mutation.changeColumnValue(
+            this.state.boardId,
+            itemId,
+            this.state.end,
+            {}
+          );
+          this.logger.highlight('End is set to {}', res);
+          const currentTask = await this.monday.getItemFromStorage(
+            this.state.userId,
+            {}
+          );
+          // If Start is clicked and current task is empty
+          if (_.isEmpty(currentTask) || !currentTask?.id) {
+            this.logger.highlight('start is clicked and current task is empty');
+            await this.monday.setItemToStorage(
+              this.state.userId,
+              result.data.change_column_value
+            );
+            this.changeState({
+              currentTask: result.data.change_column_value,
             });
+            await this.reloadData();
+            this.timeStampSaved();
+          }
+          // If Start is clicked and another current task is being worked on
+          else {
+            this.logger.highlight(
+              'start is clicked and another task is being worked on'
+            );
+            this.logger.highlight(
+              'setting current task',
+              result.data.change_column_value
+            );
+            await this.monday.mutation.changeColumnValue(
+              this.state.boardId,
+              currentTask.id,
+              this.state.end,
+              dateobject
+            );
+            await this.monday.setItemToStorage(
+              this.state.userId,
+              result.data.change_column_value
+            );
+            await this.getItemAndPunch(currentTask.id, openNextItemCard);
+            // If start next item was clicked, open the next item card. Otherwise reload
+            if (openNextItemCard) {
+              await this.monday.openItemCard(this.state.nextItemId);
+            } else {
+              await this.reloadData();
+            }
+          }
           // Else, end is clicked
         } else {
-          this.getDates(this.state.start, this.state.end, itemId).then(
-            (data) => {
-              // console.log('setting current to {}');
-              this.setState({ currentTask: '{}' });
-              monday.storage.instance.setItem(this.state.userId, '{}');
-              let dataObject = {
-                itemid: data.data.items[0].id,
-                first: {
-                  id: data.data.items[0].column_values[0].id,
-                  value: JSON.parse(data.data.items[0].column_values[0].value)
-                    .date,
-                  time: JSON.parse(data.data.items[0].column_values[0].value)
-                    .time,
-                  changed_at: JSON.parse(
-                    data.data.items[0].column_values[0].value
-                  ).changed_at,
-                },
-                second: {
-                  id: data.data.items[0].column_values[1].id,
-                  value: JSON.parse(data.data.items[0].column_values[1].value)
-                    .date,
-                  time: JSON.parse(data.data.items[0].column_values[0].value)
-                    .time,
-                  changed_at: JSON.parse(
-                    data.data.items[0].column_values[1].value
-                  ).changed_at,
-                },
-              };
-              this.getItemAndPunch(itemId, dataObject, nextItem)
-                // .then(() => this.loadData()
-                .then(() => {
-                  this.timeStampSaved();
-                });
-            }
-          );
+          this.logger.highlight('end is clicked');
+          await this.getItemAndPunch(itemId, openNextItemCard);
+          this.logger.highlight('setting current to {}');
+          this.changeState({ currentTask: {} });
+          await this.monday.setItemToStorage(this.state.userId, {});
+          await this.reloadData();
+          this.timeStampSaved();
         }
-      })
-      .catch((err) => {
-        monday.execute('notice', {
-          message: 'Something happened. Timepunch was not saved.',
-          type: 'error',
-          timeout: 5000,
-        });
-      });
+      },
+      ERROR_TIMEPUNCH_WAS_NOT_SAVED,
+      true
+    );
   };
 
+  // @done
+  isButtonVisible(type) {
+    const {
+      startTimestamp,
+      endTimestamp,
+      isIdle,
+      nextItemId,
+      idleItemId,
+      currentTask,
+      itemId,
+      itemName,
+    } = this.state;
+
+    switch (type) {
+      case BUTTON_TYPES.StartTask:
+        return (
+          (!startTimestamp || isIdle || (!!startTimestamp && !!endTimestamp)) &&
+          itemName !== 'Idle' &&
+          !isIdle
+        );
+      case BUTTON_TYPES.EndTask:
+        return (
+          (!startTimestamp && !endTimestamp) ||
+          (!!startTimestamp && !endTimestamp && !isIdle)
+        );
+      case BUTTON_TYPES.StartNextTask:
+        return (
+          (startTimestamp || isIdle || (!!startTimestamp && !!endTimestamp)) &&
+          nextItemId &&
+          idleItemId !== itemId &&
+          currentTask?.name &&
+          !isIdle
+        );
+      case BUTTON_TYPES.StartIdleTime:
+        return (
+          (!startTimestamp ||
+            (!!startTimestamp && !!endTimestamp) ||
+            (!!startTimestamp && !endTimestamp && !isIdle)) &&
+          !isIdle
+        );
+      case BUTTON_TYPES.EndIdleTime:
+        return !this.isButtonVisible(BUTTON_TYPES.StartIdleTime);
+      default:
+        return false;
+    }
+  }
+
+  // @done
   render() {
-    console.log('re-render');
     const {
       startTimestamp,
       endTimestamp,
       loaded,
-      columnValues,
       userId,
-      currentTask,
       idleLoaded,
       nextLoaded,
       isIdle,
       nextItemId,
       error,
-      clock,
       itemName,
       nextItemName,
       theme,
-      idleItemId,
-      itemId,
       logger,
       version,
+      errorMessage,
     } = this.state;
+
     return (
       <div
         className="App"
         style={{ color: theme === 'dark' ? '#D5D8DE' : '#0' }}
       >
-        <div style={{ position: 'fixed', top: '10px', right: '10px' }}>
-          Version: {version}
-        </div>
-        {logger && (
-          <div style={{ position: 'fixed', top: '10px', left: '10px' }}>
-            <p>
-              User ID: {userId} <br />
-              Current Task: {currentTask} <br />
-              Idle: {JSON.stringify(isIdle)} <br />
-              Loaded: {JSON.stringify(loaded)} <br />
-              Timestamps:{' '}
-              {`${JSON.stringify(startTimestamp)} and ${JSON.stringify(
-                endTimestamp
-              )}`}{' '}
-              <br />
-              Next Item ID: {nextItemId} <br />
-              Error: {error}
-            </p>
-          </div>
-        )}
-        {idleLoaded && loaded && nextLoaded ? (
+        <Version version={version} />
+        <Logs
+          turnedOn={logger}
+          userId={userId}
+          currentTask={this.state.currentTask}
+          isIdle={isIdle}
+          loaded={loaded}
+          startTimestamp={startTimestamp}
+          endTimestamp={endTimestamp}
+          nextItemId={nextItemId}
+          error={error}
+          errorMessage={errorMessage}
+        />
+        {idleLoaded && loaded && nextLoaded && !error ? (
           <>
             {!error ? (
               <div
@@ -798,149 +587,88 @@ class App extends React.Component {
                   alignItems: 'center',
                 }}
               >
-                {/* <div>
-            <h3>Active Task: {JSON.parse(currentTask) && JSON.parse(currentTask).name ? JSON.parse(currentTask).name : 'No active task'}</h3>
-          </div> */}
-                {
-                  <AttentionBox
-                    className="monday-style-attention-box_box"
-                    text={`CST Time: ${clock}`}
-                    title={
-                      JSON.parse(currentTask) && JSON.parse(currentTask).name
-                        ? `Active task: ${JSON.parse(currentTask).name}`
-                        : 'No active task'
-                    }
-                  />
-                }
-                {(!startTimestamp ||
-                  isIdle ||
-                  (!!startTimestamp && !!endTimestamp)) &&
-                  itemName !== 'Idle' &&
-                  !isIdle && (
-                    <>
-                      <div style={{ padding: '10px ' }}>
-                        <Button
-                          style={{ backgroundColor: '#FD500B' }}
-                          size={Button.sizes.LARGE}
-                          loading={!loaded}
-                          onClick={() =>
-                            this.changeDateValue(
-                              this.state.start,
-                              this.state.itemId
-                            )
-                          }
-                        >
-                          Start Task: {itemName}
-                        </Button>
-                      </div>
-                    </>
-                  )}
-                {(!startTimestamp && !endTimestamp) ||
-                  (!!startTimestamp && !endTimestamp && !isIdle && (
-                    <>
-                      <div style={{ padding: '10px ' }}>
-                        <Button
-                          style={{ backgroundColor: '#ED2929' }}
-                          size={Button.sizes.LARGE}
-                          loading={!loaded}
-                          onClick={() =>
-                            this.changeDateValue(
-                              this.state.end,
-                              this.state.itemId
-                            )
-                          }
-                        >
-                          End Task
-                        </Button>
-                      </div>
-                    </>
-                  ))}
-                {(startTimestamp ||
-                  isIdle ||
-                  (!!startTimestamp && !!endTimestamp)) &&
-                  nextItemId &&
-                  idleItemId != itemId &&
-                  JSON.parse(currentTask) &&
-                  JSON.parse(currentTask).name &&
-                  !isIdle && (
-                    <div style={{ padding: '10px ' }}>
-                      <Button
-                        style={{ backgroundColor: '#FD500B' }}
-                        size={Button.sizes.LARGE}
-                        disabled={!nextItemId}
-                        loading={!loaded}
-                        onClick={() => {
-                          this.changeDateValue(
-                            this.state.start,
-                            this.state.nextItemId,
-                            true,
-                            this.state.itemId
-                          );
-                        }}
-                      >
-                        Start Next Task: {nextItemName}
-                      </Button>
-                    </div>
-                  )}
-                <div>
-                  {(!startTimestamp ||
-                    (!!startTimestamp && !!endTimestamp) ||
-                    (!!startTimestamp && !endTimestamp && !isIdle)) &&
-                  !isIdle ? (
-                    <div style={{ padding: '10px ' }}>
-                      <Button
-                        style={{ backgroundColor: '#FD8D60' }}
-                        size={Button.sizes.LARGE}
-                        loading={!idleLoaded}
-                        onClick={() => {
-                          this.changeDateValue(
-                            this.state.start,
-                            this.state.idleItemId
-                          );
-                        }}
-                      >
-                        Start Idle Time
-                      </Button>
-                    </div>
-                  ) : (
-                    <div style={{ padding: '10px ' }}>
-                      <Button
-                        style={{ backgroundColor: '#ED2929' }}
-                        size={Button.sizes.LARGE}
-                        loading={!idleLoaded}
-                        onClick={() => {
-                          this.changeDateValue(
-                            this.state.end,
-                            this.state.idleItemId
-                          );
-                        }}
-                      >
-                        End Idle Time
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                <ActiveTask currentTask={this.state.currentTask} />
+
+                {this.isButtonVisible(BUTTON_TYPES.StartTask) && (
+                  <ActionButton
+                    loading={!loaded}
+                    onClick={() => {
+                      this.changeDateValue(this.state.start, this.state.itemId);
+                    }}
+                    backgroundColor={BACKGROUND_COLORS.StartTask}
+                  >
+                    Start Task: {itemName}
+                  </ActionButton>
+                )}
+
+                {this.isButtonVisible(BUTTON_TYPES.EndTask) && (
+                  <ActionButton
+                    loading={!loaded}
+                    onClick={() => {
+                      this.changeDateValue(this.state.end, this.state.itemId);
+                    }}
+                    backgroundColor={BACKGROUND_COLORS.EndTask}
+                  >
+                    End Task
+                  </ActionButton>
+                )}
+
+                {this.isButtonVisible(BUTTON_TYPES.StartNextTask) && (
+                  <ActionButton
+                    disabled={!nextItemId}
+                    loading={!loaded}
+                    onClick={() => {
+                      this.changeDateValue(
+                        this.state.start,
+                        this.state.nextItemId,
+                        true
+                      );
+                    }}
+                    backgroundColor={BACKGROUND_COLORS.StartNextTask}
+                  >
+                    Start Next Task: {nextItemName}
+                  </ActionButton>
+                )}
+
+                {this.isButtonVisible(BUTTON_TYPES.StartIdleTime) ? (
+                  <ActionButton
+                    loading={!idleLoaded}
+                    onClick={() => {
+                      this.changeDateValue(
+                        this.state.start,
+                        this.state.idleItemId
+                      );
+                    }}
+                    backgroundColor={BACKGROUND_COLORS.StartIdleTime}
+                  >
+                    Start Idle Time
+                  </ActionButton>
+                ) : (
+                  <ActionButton
+                    loading={!idleLoaded}
+                    onClick={() => {
+                      this.changeDateValue(
+                        this.state.end,
+                        this.state.idleItemId
+                      );
+                    }}
+                    backgroundColor={BACKGROUND_COLORS.EndIdleTime}
+                  >
+                    End Idle Time
+                  </ActionButton>
+                )}
               </div>
             ) : (
-              <div style={{ width: '80%' }}>
-                <AttentionBox
-                  title="Configuration Error"
-                  text="Make sure you have an 'Idle' item on the top of your board, a 'Start' & 'End' date columns selected in the app settings. Then refresh."
-                  type={AttentionBox.types.DANGER}
-                  className="monday-style-attention-box_box"
-                />
-              </div>
+              <Error
+                title="Configuration Error"
+                errorMessage={ERROR_CONFIGURATION}
+              />
             )}
           </>
+        ) : error ? (
+          <Error errorMessage={errorMessage} />
         ) : (
-          <div>
-            <div style={{ width: '24px', height: '24px', margin: 'auto' }}>
-              <Loader size={16} />
-            </div>
-            <div style={{ color: 'red', fontSize: 'x-large' }}>
-              Do not close this window!
-            </div>
-          </div>
+          <Loading />
         )}
       </div>
     );
