@@ -300,11 +300,6 @@ class App extends React.Component {
         const startDate = res.data.items?.[0]?.column_values?.[0]?.text;
         const endDate = res.data.items?.[0]?.column_values?.[1]?.text;
 
-        this.logger.highlight('dates', {
-          startDate,
-          endDate,
-        });
-
         // If current task is active
         if (!!startDate && !endDate) {
           this.changeState({

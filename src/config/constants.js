@@ -10,3 +10,5 @@ export const DEFAULT_TIME_FORMAT = 'MMM Do h:mm:ss a';
 
 export const IDLE_NAME = 'Idle';
 export const ENV = 'development'; // TODO: update it to 'production' before release
+
+export const API_TIMEOUT = 10000; // in ms
