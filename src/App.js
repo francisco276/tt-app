@@ -89,49 +89,13 @@ class App extends React.Component {
       await this.loadContext();
       await Promise.all([
         this.loadPunchBoard(),
-        this.loadIdleColumn(),
+        this.loadIdleId(),
         this.loadData(),
-        this.getNextItemId(),
-        this.setItemName(),
+        this.loadNextItem(),
+        this.loadItemName(),
       ]);
     });
   }
-
-  /**
-   * Loads settings for the aplication
-   * - (string)  Start Time column ID
-   * - (string)  End Time column ID
-   * - (boolean) Logger on/off
-   */
-  loadSettings = async () => {
-    await this.monday.listen('settings', (res) => {
-      this.logger.highlight('settings', res);
-
-      // For development purpose only
-      if (ENV === 'development') {
-        this.clearError();
-        this.changeState({
-          start: 'date',
-          end: 'dup__of_start',
-          logger: true,
-        });
-        this.logger.turnOn();
-        return;
-      }
-
-      if (!res.data.start || !res.data.end) {
-        this.changeState({ logger: res.data.logger });
-        this.setError(ERROR_SETTINGS_WERE_NOT_CONFIGURED);
-      } else {
-        this.clearError();
-        this.changeState({
-          start: Object.keys(res.data.start)[0],
-          end: Object.keys(res.data.end)[0],
-          logger: res.data.logger,
-        });
-      }
-    });
-  };
 
   /**
    * Wrapper for catching an error in the asynchronious code
@@ -246,6 +210,42 @@ class App extends React.Component {
   };
 
   /**
+   * Loads settings for the aplication
+   * - (string)  Start Time column ID
+   * - (string)  End Time column ID
+   * - (boolean) Logger on/off
+   */
+  loadSettings = async () => {
+    await this.monday.listen('settings', (res) => {
+      this.logger.highlight('settings', res);
+
+      // For development purpose only
+      if (ENV === 'development') {
+        this.clearError();
+        this.changeState({
+          start: 'date',
+          end: 'dup__of_start',
+          logger: true,
+        });
+        this.logger.turnOn();
+        return;
+      }
+
+      if (!res.data.start || !res.data.end) {
+        this.changeState({ logger: res.data.logger });
+        this.setError(ERROR_SETTINGS_WERE_NOT_CONFIGURED);
+      } else {
+        this.clearError();
+        this.changeState({
+          start: Object.keys(res.data.start)[0],
+          end: Object.keys(res.data.end)[0],
+          logger: res.data.logger,
+        });
+      }
+    });
+  };
+
+  /**
    * Loads current user's punch board & stores punch board ID to the app's state
    * Should run once after the application was loaded
    */
@@ -263,16 +263,76 @@ class App extends React.Component {
   };
 
   /**
-   * Loads the necessary to reload the application data after
-   * all actions are done after pushing any button
-   * TODO: Check if can be optimized
+   * Requests current item (task) name from the monday
+   * Saves it to the app's state
+   * TODO: Check if we can avoid this request using the existed in the satte data
    */
-  reloadData = async () => {
-    return Promise.all([
-      this.loadData(),
-      this.getNextItemId(),
-      this.setItemName(),
-    ]);
+  loadItemName = async () => {
+    const res = await this.monday.query.getItemNameById(this.state.itemId);
+    if (!res.data?.items?.[0]?.name) {
+      throw new PublicError(ERROR_CAN_NOT_GET_ITEM);
+    }
+    this.changeState({ itemName: res.data.items[0].name });
+  };
+
+  /**
+   * Requests the information about the Idle column and
+   * saves its ID to the app's state
+   */
+  loadIdleId = async () => {
+    const res = await this.monday.query.getIdleColumnByBoardId(
+      this.state.boardId,
+      this.state.userId
+    );
+
+    let idleItemId = res.data.boards?.[0]?.items_page?.items?.[0]?.id;
+    if (!idleItemId) {
+      throw new PublicError(ERROR_IDLE_ITEM_IS_ABSENT);
+    }
+    this.changeState({ idleItemId: idleItemId });
+  };
+
+  /**
+   * Requests all the items from the board linked to the user
+   * Searches the next item index in the list and stores data
+   * about the next item (id, name) into the app's state
+   * TODO: In theory can be triggered once after loading the application and sotred to the app's state
+   */
+  loadNextItem = async () => {
+    // Current task is stored under userId key in monday.storage
+    const firstPage = await this.monday.query.getItemsPageByColumnValues(
+      JSON.parse(this.state.boardId),
+      this.state.userId
+    );
+    let cursor = firstPage.data?.items_page_by_column_values?.cursor;
+    let items = firstPage.data?.items_page_by_column_values?.items;
+
+    while (cursor) {
+      // loop will stop when cursor is null
+      const nextPage = await this.monday.query.getNextItemsPage(cursor);
+      cursor = nextPage.data.next_items_page.cursor;
+      items = _.flatten(_.union(items, nextPage.data.next_items_page.items));
+    }
+
+    const currentTaskIndex = this.state.currentTask?.id
+      ? _.findIndex(
+          items,
+          (item) => Number(item.id) === Number(this.state.currentTask?.id)
+        )
+      : -1;
+    const currentItemIndex = _.findIndex(
+      items,
+      (item) => Number(item.id) === Number(this.state.itemId)
+    );
+    const index =
+      currentItemIndex > currentTaskIndex ? currentItemIndex : currentTaskIndex;
+
+    const nextItem = items[index + 1];
+    this.changeState({
+      nextLoaded: true,
+      nextItemName: nextItem ? nextItem.name : '',
+      nextItemId: index === items.length - 1 ? '' : items[index + 1].id,
+    });
   };
 
   /**
@@ -331,6 +391,18 @@ class App extends React.Component {
       this.state.end,
       currentTask?.name === IDLE_NAME ? currentTask.id : this.state.itemId
     );
+  };
+
+  /**
+   * Loads the necessary to reload the application data after
+   * all actions are done after pushing any button
+   */
+  reloadData = async () => {
+    return Promise.all([
+      this.loadData(),
+      this.loadNextItem(),
+      this.loadItemName(),
+    ]);
   };
 
   /**
@@ -396,78 +468,6 @@ class App extends React.Component {
       await this.reloadData();
       throw error;
     }
-  };
-
-  /**
-   * Requests current item (task) name from the monday
-   * Saves it to the app's state
-   * TODO: Check if we can avoid this request using the existed in the satte data
-   */
-  setItemName = async () => {
-    const res = await this.monday.query.getItemNameById(this.state.itemId);
-    if (!res.data?.items?.[0]?.name) {
-      throw new PublicError(ERROR_CAN_NOT_GET_ITEM);
-    }
-    this.changeState({ itemName: res.data.items[0].name });
-  };
-
-  /**
-   * Requests all the items from the board linked to the user
-   * Searches the next item index in the list and stores data
-   * about the next item (id, name) into the app's state
-   */
-  getNextItemId = async () => {
-    // Current task is stored under userId key in monday.storage
-    const firstPage = await this.monday.query.getItemsPageByColumnValues(
-      JSON.parse(this.state.boardId),
-      this.state.userId
-    );
-    let cursor = firstPage.data?.items_page_by_column_values?.cursor;
-    let items = firstPage.data?.items_page_by_column_values?.items;
-
-    while (cursor) {
-      // loop will stop when cursor is null
-      const nextPage = await this.monday.query.getNextItemsPage(cursor);
-      cursor = nextPage.data.next_items_page.cursor;
-      items = _.flatten(_.union(items, nextPage.data.next_items_page.items));
-    }
-
-    const currentTaskIndex = this.state.currentTask?.id
-      ? _.findIndex(
-          items,
-          (item) => Number(item.id) === Number(this.state.currentTask?.id)
-        )
-      : -1;
-    const currentItemIndex = _.findIndex(
-      items,
-      (item) => Number(item.id) === Number(this.state.itemId)
-    );
-    const index =
-      currentItemIndex > currentTaskIndex ? currentItemIndex : currentTaskIndex;
-
-    const nextItem = items[index + 1];
-    this.changeState({
-      nextLoaded: true,
-      nextItemName: nextItem ? nextItem.name : '',
-      nextItemId: index === items.length - 1 ? '' : items[index + 1].id,
-    });
-  };
-
-  /**
-   * Requests the information about the Idle column and
-   * saves its ID to the app's state
-   */
-  loadIdleColumn = async () => {
-    const res = await this.monday.query.getIdleColumnByBoardId(
-      this.state.boardId,
-      this.state.userId
-    );
-
-    let idleItemId = res.data.boards?.[0]?.items_page?.items?.[0]?.id;
-    if (!idleItemId) {
-      throw new PublicError(ERROR_IDLE_ITEM_IS_ABSENT);
-    }
-    this.changeState({ idleItemId: idleItemId });
   };
 
   /**
