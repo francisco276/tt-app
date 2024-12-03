@@ -6,7 +6,7 @@ export const ERROR_START_OR_END_ELEMENT_IS_ABSENT =
   'Start and/or End element is absent.';
 export const ERROR_IDLE_ITEM_IS_ABSENT =
   'There is no linked Idle item to the board.';
-export const ERROR_NO_LINKED_PUBCH_BOARD =
+export const ERROR_NO_LINKED_PUNCH_BOARD =
   'There is not linked punch board. Please ask administrator for the help.';
 export const ERROR_CAN_NOT_GET_ITEM =
   'Can not retrieve an item from the server.';

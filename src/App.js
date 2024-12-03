@@ -18,7 +18,7 @@ import {
   ERROR_CAN_NOT_GET_ITEM,
   ERROR_CONFIGURATION,
   ERROR_IDLE_ITEM_IS_ABSENT,
-  ERROR_NO_LINKED_PUBCH_BOARD,
+  ERROR_NO_LINKED_PUNCH_BOARD,
   ERROR_SETTINGS_WERE_NOT_CONFIGURED,
   ERROR_START_OR_END_ELEMENT_IS_ABSENT,
   ERROR_TIMEPUNCH_WAS_NOT_SAVED,
@@ -255,7 +255,7 @@ class App extends React.Component {
       punchBoard.data?.items_page_by_column_values?.items?.[0]
         ?.column_values?.[0]?.value;
     if (!punchBoardId) {
-      throw new PublicError(ERROR_NO_LINKED_PUBCH_BOARD);
+      throw new PublicError(ERROR_NO_LINKED_PUNCH_BOARD);
     }
     this.changeState({
       userPunchesBoardID: JSON.parse(punchBoardId),
