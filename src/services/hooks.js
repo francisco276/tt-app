@@ -3,6 +3,11 @@ export class Hooks {
     this.logger = logger;
   }
 
+  /**
+   * Hook that should be called every time punch creation is failed
+   * @param {Object} dataObject
+   * @returns
+   */
   createPunchError(dataObject) {
     this.logger.highlight('[Hooks] createPunchError triggered', dataObject);
 

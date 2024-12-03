@@ -8,7 +8,7 @@ export class MondayRequest {
   }
 
   getErrorMessage(errors) {
-    if (this.logger.getLogger() === false) {
+    if (this.logger.isTurnedOn() === false) {
       return ERROR_SERVER_ERROR;
     }
 

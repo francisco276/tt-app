@@ -1,13 +1,25 @@
 import moment from 'moment-timezone';
 import { DEFAULT_TIME_FORMAT, DEFAULT_TIMEZONE } from '../config/constants';
 
+/**
+ * Imitates delay
+ * @param {Number} time
+ */
 export const sleep = (time) =>
   new Promise((resolve) => setTimeout(resolve, time));
 
+/**
+ * Generates the current time
+ * @returns {String}
+ */
 export const getCurrentTime = () => {
   return moment().tz(DEFAULT_TIMEZONE).format(DEFAULT_TIME_FORMAT);
 };
 
+/**
+ * Generates monday date object and returns it back
+ * @param {Date} date
+ */
 export const getMondayDateObject = (date) => {
   // Get date in UTC
   const year = date.getFullYear();

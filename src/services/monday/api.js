@@ -4,6 +4,9 @@ import { MondayQuery } from './query';
 import { MondayMutation } from './mutation';
 import { MondayRequest } from './request';
 
+/**
+ * Stores methods to work with Monday SDK and Query/Mutation requests
+ */
 export class MondayApi {
   constructor(logger) {
     this.monday = mondaySdk({ apiVersion: MONDAY_API_VERSION });
@@ -59,6 +62,12 @@ export class MondayApi {
     return this.monday.get('context');
   }
 
+  /**
+   * Shows the popup notification in monday style
+   * @param {String} message - message will be shown in the notification
+   * @param {String} type - success/error type of the notification
+   * @param {Number} timeout - the period in ms after which the notification popup closes
+   */
   async notice(message, type, timeout) {
     this.logger.highlight(`[Notice] ${type}:`, message);
     return this.monday.execute('notice', {
@@ -68,14 +77,28 @@ export class MondayApi {
     });
   }
 
+  /**
+   * Helper to show the error notification
+   * @param {String} message
+   * @param {Number} timeout
+   */
   async errorNotice(message, timeout = 5000) {
     return this.notice(message, 'error', timeout);
   }
 
+  /**
+   * Helper to show the success notification
+   * @param {String} message
+   * @param {Number} timeout
+   */
   async successNotice(message, timeout = 2000) {
     return this.notice(message, 'success', timeout);
   }
 
+  /**
+   * Command to move user to another item's actions window
+   * @param {Number} itemId
+   */
   async openItemCard(itemId) {
     this.logger.highlight(`[Card] opened:`, itemId);
     return this.monday.execute('openItemCard', {

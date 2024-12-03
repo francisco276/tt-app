@@ -27,7 +27,7 @@ import {
 import { PublicError } from './errors/PublicError';
 import { MondayApi } from './services/monday/api';
 import { Logger } from './services/logger';
-import { mapItem } from './utils/mappers';
+import { mapToPunchBoardFormat } from './utils/mappers';
 import { getMondayDateObject } from './utils/utils';
 
 import 'monday-ui-react-core/dist/main.css';
@@ -391,14 +391,10 @@ class App extends React.Component {
       if (!itemRes.data.items?.length) {
         throw new PublicError(ERROR_CAN_NOT_GET_ITEM);
       }
-      const { name, cv } = mapItem(
-        itemRes.data.items[0].column_values,
-        itemRes.data.items[0].name
-      );
       await this.monday.mutation.createPunch(
         this.state.userPunchesBoardID,
-        name,
-        cv
+        itemRes.data.items[0].name,
+        mapToPunchBoardFormat(itemRes.data.items[0].column_values)
       );
     } catch (error) {
       await this.hooks.createPunchError({ itemid: itemId });
@@ -607,7 +603,6 @@ class App extends React.Component {
       case BUTTON_TYPES.EndTask:
         return !!startTimestamp && !endTimestamp && !isIdle;
       case BUTTON_TYPES.StartNextTask:
-        this.logger.log(this.state);
         return (
           nextItemId &&
           idleItemId !== itemId &&

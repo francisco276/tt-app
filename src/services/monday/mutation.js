@@ -1,5 +1,8 @@
 import { MONDAY_API_VERSION } from '../../config/constants';
 
+/**
+ * Stores methods to work with Monday GraphQL Mutations
+ */
 export class MondayMutation {
   constructor(requestor) {
     this.requestor = requestor;

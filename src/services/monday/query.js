@@ -6,6 +6,9 @@ import {
   TIMEPUNCH_CURRENT_COLUMN_ID,
 } from '../../config/constants';
 
+/**
+ * Stores methods to work with Monday GraphQL Queries
+ */
 export class MondayQuery {
   constructor(requestor) {
     this.requestor = requestor;

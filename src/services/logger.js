@@ -1,32 +1,60 @@
+/**
+ * Service that will log all the necessary information to the browser's console
+ * In case of need, requests to monday.log can be added here
+ */
 export class Logger {
-  constructor(logger = false, fn = 'log') {
-    this.logger = logger;
+  constructor(turnedOn = false, fn = 'log') {
+    this.turnedOn = turnedOn;
     this.fn = fn; // log, trace, info...
   }
 
-  setLogger(logger) {
-    this.logger = Boolean(logger);
+  /**
+   * Sets the turned on flag
+   * @param {Boolean} turnedOn
+   */
+  setTurnedOn(turnedOn) {
+    this.turnedOn = Boolean(turnedOn);
   }
 
-  getLogger() {
-    return this.logger;
+  /**
+   * Returns the turned on flag
+   * @returns {Boolean}
+   */
+  isTurnedOn() {
+    return this.turnedOn;
   }
 
+  /**
+   * Turns on logging to console
+   */
   turnOn() {
-    this.setLogger(true);
+    this.setTurnedOn(true);
   }
 
+  /**
+   * Turns off logging to console
+   */
   turnOff() {
-    this.setLogger(false);
+    this.setTurnedOn(false);
   }
 
+  /**
+   * Helper method to log the messages to console
+   * @param  {...any} messages
+   * @returns
+   */
   log(...messages) {
-    if (!this.logger) {
+    if (!this.turnedOn) {
       return;
     }
     console[this.fn](...messages);
   }
 
+  /**
+   * Helper method to log the message. First one will be highlighted
+   * @param {String} firstMessage
+   * @param {...any} restMessages
+   */
   highlight(firstMessage, ...restMessages) {
     this.log(
       `%c ${firstMessage}`,
@@ -35,17 +63,28 @@ export class Logger {
     );
   }
 
+  /**
+   * Helper method to log the error to console
+   * @param  {...any} messages - an array of any piece of data
+   * @returns
+   */
   error(...messages) {
-    if (!this.logger) {
+    if (!this.turnedOn) {
       return;
     }
     console.error(...messages);
   }
 
-  api(method, query, response) {
+  /**
+   * Helper method to log API request
+   * @param {String} label - method label
+   * @param {String} query - query or mutation
+   * @param {any} response - data from the server
+   */
+  api(label, query, response) {
     const type = query.split(' ')[0].toUpperCase();
     this.log(
-      `%c API ${type} %c ${method}`,
+      `%c API ${type} %c ${label}`,
       `background: #222222; color: ${
         type === 'QUERY' ? '#bada55' : 'rgb(220, 68, 68)'
       }`,
@@ -55,6 +94,10 @@ export class Logger {
     this.log(`%c Response`, 'background: #222222; color: #bada55', response);
   }
 
+  /**
+   * Helper method to log any state changes
+   * @param {Object} newValues
+   */
   stateChange(newValues) {
     this.log(`%c State Changes`, 'color: #d9979d', newValues);
   }
