@@ -41,60 +41,50 @@ class App extends React.Component {
     this.logger = new Logger();
     this.monday = new MondayApi(this.logger);
 
-    // Default state
+    // Setting default state
     this.state = {
-      start: '',
-      end: '',
-      itemId: '',
-      itemName: '',
-      loaded: false,
-      idleLoaded: false,
-      nextLoaded: false,
+      // Coming from the monday.settings
+      start: '', // Start Time column ID
+      end: '', // End Time column ID
+      logger: false, // Turn on/off the logger
+
+      // Loading indicators
+      loaded: false, // Data was loaded
+      idleLoaded: false, // Idle task was loaded
+      nextLoaded: false, // Next task was loaded
+
+      // Error indicator
+      error: false,
+      errorMessage: '', // Error message in case it exists
+
+      // Static data that should not change during the work
+      userId: '', // Current user ID
+      boardId: '', // Current board ID
+      idleItemId: '', // Idle task ID
+      userPunchesBoardID: '', // Punch board ID
+      version: '', // Version of the application
+      theme: '', // Theme
+
+      // Other dynamic data
+      currentTask: {}, // Current/Last active task from monday.storage
+      itemId: '', // Current (opened) item ID
+      itemName: '', // Current (opened) item name
       startTimestamp: null,
       endTimestamp: null,
       columnValues: [],
-      currentTask: {},
-      userId: '',
-      boardId: '',
-      idleItemId: '',
-      isIdle: false,
-      nextItemName: '',
-      nextItemId: '',
-      error: false,
-      errorMessage: '',
-      logger: false,
-      version: '',
-      userPunchesBoardID: '',
+      isIdle: false, // Shows if Idle task is active
+      nextItemName: '', // Next task name
+      nextItemId: '', // Next task ID
     };
   }
 
-  // @done & @todos
+  /**
+   * Runs once after the application did mount
+   * Loads all the necessary data to work with
+   */
   componentDidMount() {
     this.catchError(async () => {
-      await this.monday.listen('settings', (res) => {
-        this.logger.highlight('settings', res);
-        if (ENV === 'production') {
-          if (!res.data.start || !res.data.end) {
-            this.changeState({ logger: res.data.logger });
-            this.setError(ERROR_SETTINGS_WERE_NOT_CONFIGURED);
-          } else {
-            this.clearError();
-            this.changeState({
-              start: Object.keys(res.data.start)[0],
-              end: Object.keys(res.data.end)[0],
-              logger: res.data.logger,
-            });
-          }
-        } else {
-          this.clearError();
-          this.changeState({
-            start: 'date',
-            end: 'dup__of_start',
-            logger: true,
-          });
-          this.logger.turnOn();
-        }
-      });
+      await this.loadSettings();
       await this.loadContext();
       await Promise.all([
         this.loadPunchBoard(),
@@ -106,7 +96,48 @@ class App extends React.Component {
     });
   }
 
-  // @done
+  /**
+   * Loads settings for the aplication
+   * - (string)  Start Time column ID
+   * - (string)  End Time column ID
+   * - (boolean) Logger on/off
+   */
+  async loadSettings() {
+    await this.monday.listen('settings', (res) => {
+      this.logger.highlight('settings', res);
+
+      // For development purpose only
+      if (ENV === 'development') {
+        this.clearError();
+        this.changeState({
+          start: 'date',
+          end: 'dup__of_start',
+          logger: true,
+        });
+        this.logger.turnOn();
+        return;
+      }
+
+      if (!res.data.start || !res.data.end) {
+        this.changeState({ logger: res.data.logger });
+        this.setError(ERROR_SETTINGS_WERE_NOT_CONFIGURED);
+      } else {
+        this.clearError();
+        this.changeState({
+          start: Object.keys(res.data.start)[0],
+          end: Object.keys(res.data.end)[0],
+          logger: res.data.logger,
+        });
+      }
+    });
+  }
+
+  /**
+   * Wrapper for catching an error in the asynchronious code
+   * @param {Function} callback - will be run inside try/catch block
+   * @param {String} defaultMessage  - will be shown in case of an error different from PulicError
+   * @param {Boolean} showErrorNotice - indicates if notification needed to be shown
+   */
   async catchError(callback, defaultMessage, showErrorNotice = false) {
     try {
       if (this.error) {
@@ -126,7 +157,10 @@ class App extends React.Component {
     }
   }
 
-  // @done
+  /**
+   * Changes the current state & logs changes
+   * @param {Object} values - key/value object that will be written into the state
+   */
   changeState(values) {
     this.setState((state) => ({
       ...state,
@@ -136,7 +170,10 @@ class App extends React.Component {
     this.logger.stateChange(values);
   }
 
-  // @done
+  /**
+   * Sets error indicators and changes the state
+   * @param {String} errorMessage
+   */
   setError(errorMessage) {
     if (this.state.error === true) {
       this.logger.highlight('previous error', this.state.errorMessage);
@@ -147,7 +184,9 @@ class App extends React.Component {
     });
   }
 
-  // @done
+  /**
+   * Removes an error from the state
+   */
   clearError() {
     if (this.state.error === true || !!this.state.errorMessage) {
       this.changeState({
@@ -157,7 +196,11 @@ class App extends React.Component {
     }
   }
 
-  // @done
+  /**
+   * Validates if all the data exists inside the context object
+   * @param {Object} context - context from the monday.com
+   * @returns
+   */
   isContextValid(context) {
     return (
       !!context &&
@@ -170,12 +213,20 @@ class App extends React.Component {
     );
   }
 
-  // @done
+  /**
+   * Generates an error message from the Error object
+   * @param {Error} error - Error object
+   * @param {String} defaultMessage - message that will be shown in case if error is not instance of PublicError
+   * @returns {String} an error message
+   */
   getErrorMessage(error, defaultMessage = DEFAULT_ERROR) {
     return error instanceof PublicError ? error.message : defaultMessage;
   }
 
-  // @done
+  /**
+   * Loads context from monday.com & saves the data to the app's state
+   * Should run once after the application was loaded
+   */
   loadContext = async () => {
     const context = await this.monday.getContext();
     this.logger.highlight('context', context);
@@ -193,7 +244,10 @@ class App extends React.Component {
     });
   };
 
-  // @done
+  /**
+   * Loads current user's punch board & stores punch board ID to the app's state
+   * Should run once after the application was loaded
+   */
   loadPunchBoard = async () => {
     const punchBoard = await this.monday.query.getPunchBoard(this.state.userId);
     const punchBoardId =
@@ -207,7 +261,11 @@ class App extends React.Component {
     });
   };
 
-  // @done
+  /**
+   * Loads the necessary to reload the application data after
+   * all actions are done after pushing any button
+   * TODO: Check if can be optimized
+   */
   reloadData = async () => {
     return Promise.all([
       this.loadData(),
@@ -216,7 +274,10 @@ class App extends React.Component {
     ]);
   };
 
-  // @done
+  /**
+   * Loads the necessary data needed to work with an item (task)
+   * TODO: Check if can be optimized even more
+   */
   loadData = async () => {
     // Current task is stored under userId key in monday.storage
     const currentTask = await this.monday.getItemFromStorage(
@@ -275,7 +336,13 @@ class App extends React.Component {
     );
   };
 
-  // @done
+  /**
+   * Requests the information about the start and end date columns
+   * Saves requested data to the app's store
+   * @param {String} startColumnId
+   * @param {String} endColumnId
+   * @param {Number} itemId
+   */
   getAndSetDateValues = async (startColumnId, endColumnId, itemId) => {
     const response = await this.monday.query.getDateRangeColumnsByIdsForItem(
       itemId,
@@ -311,7 +378,11 @@ class App extends React.Component {
     }
   };
 
-  // @done & @todos
+  /**
+   * Requests an information about the item from monday.com
+   * Sends a request to create punch based on the information about the item
+   * @param {Number} itemId
+   */
   getItemAndPunch = async (itemId) => {
     try {
       const itemRes = await this.monday.query.getItemById(itemId);
@@ -329,12 +400,16 @@ class App extends React.Component {
       );
     } catch (error) {
       await fetchHook({ itemid: itemId });
-      await this.reloadData(); // TODO: Check if we need it
+      await this.reloadData();
       throw error;
     }
   };
 
-  // @done
+  /**
+   * Requests current item (task) name from the monday
+   * Saves it to the app's state
+   * TODO: Check if we can avoid this request using the existed in the satte data
+   */
   setItemName = async () => {
     const res = await this.monday.query.getItemNameById(this.state.itemId);
     if (!res.data?.items?.[0]?.name) {
@@ -343,7 +418,11 @@ class App extends React.Component {
     this.changeState({ itemName: res.data.items[0].name });
   };
 
-  // @done
+  /**
+   * Requests all the items from the board linked to the user
+   * Searches the next item index in the list and stores data
+   * about the next item (id, name) into the app's state
+   */
   getNextItemId = async () => {
     // Current task is stored under userId key in monday.storage
     const firstPage = await this.monday.query.getItemsPageByColumnValues(
@@ -381,27 +460,31 @@ class App extends React.Component {
     });
   };
 
-  // @done
+  /**
+   * Requests the information about the Idle column and
+   * saves its ID to the app's state
+   */
   loadIdleColumn = async () => {
     const res = await this.monday.query.getIdleColumnByBoardId(
       this.state.boardId,
       this.state.userId
     );
 
-    let idleItem = res.data.boards[0].items_page.items[0];
-    if (!idleItem) {
+    let idleItemId = res.data.boards?.[0]?.items_page?.items?.[0]?.id;
+    if (!idleItemId) {
       throw new PublicError(ERROR_IDLE_ITEM_IS_ABSENT);
-    } else {
-      this.changeState({ idleItemId: idleItem.id });
     }
+    this.changeState({ idleItemId: idleItemId });
   };
 
-  // @done
-  timeStampSaved = async () => {
-    await this.monday.successNotice('Timestamp saved!');
-  };
-
-  // @action & @done
+  /**
+   * This is the only entry point for the buttons' onClick action
+   * Decides what button was clicked and runs the proper logic
+   * @param {String} columnId - Start or End time column ID
+   * @param {Number} itemId - the item we're working with
+   * @param {Boolean} openNextItemCard - new item card should be loaded
+   * TODO: Check if this method can be destructured to several simpler actions
+   */
   changeDateValue = async (columnId, itemId, openNextItemCard = false) => {
     // Check whether a regular timepunch or idle time
     this.changeState(
@@ -447,7 +530,6 @@ class App extends React.Component {
               currentTask: result.data.change_column_value,
             });
             await this.reloadData();
-            this.timeStampSaved();
           }
           // If Start is clicked and another current task is being worked on
           else {
@@ -484,15 +566,19 @@ class App extends React.Component {
           this.changeState({ currentTask: {} });
           await this.monday.setItemToStorage(this.state.userId, {});
           await this.reloadData();
-          this.timeStampSaved();
         }
+        this.monday.successNotice('Timestamp saved!');
       },
       ERROR_TIMEPUNCH_WAS_NOT_SAVED,
       true
     );
   };
 
-  // @done
+  /**
+   * Checks if the particular button should be shown to the user
+   * @param {String} type - value from the BUTTON_TYPES dictionary
+   * @returns {Boolean}
+   */
   isButtonVisible(type) {
     const {
       startTimestamp,
@@ -539,7 +625,9 @@ class App extends React.Component {
     }
   }
 
-  // @done
+  /**
+   * Renders the application
+   */
   render() {
     const {
       startTimestamp,
