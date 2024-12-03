@@ -25,7 +25,6 @@ import {
   ERROR_WRONG_ENVIRONMENT,
 } from './config/errors';
 import { PublicError } from './errors/PublicError';
-import { fetchHook } from './api/fetchHook';
 import { MondayApi } from './services/monday/api';
 import { Logger } from './services/logger';
 import { mapItem } from './utils/mappers';
@@ -33,6 +32,7 @@ import { getMondayDateObject } from './utils/utils';
 
 import 'monday-ui-react-core/dist/main.css';
 import './App.css';
+import { Hooks } from './services/hooks';
 
 class App extends React.Component {
   constructor(props) {
@@ -40,6 +40,7 @@ class App extends React.Component {
 
     this.logger = new Logger();
     this.monday = new MondayApi(this.logger);
+    this.hooks = new Hooks(this.logger);
 
     // Setting default state
     this.state = {
@@ -102,7 +103,7 @@ class App extends React.Component {
    * - (string)  End Time column ID
    * - (boolean) Logger on/off
    */
-  async loadSettings() {
+  loadSettings = async () => {
     await this.monday.listen('settings', (res) => {
       this.logger.highlight('settings', res);
 
@@ -130,7 +131,7 @@ class App extends React.Component {
         });
       }
     });
-  }
+  };
 
   /**
    * Wrapper for catching an error in the asynchronious code
@@ -138,7 +139,7 @@ class App extends React.Component {
    * @param {String} defaultMessage  - will be shown in case of an error different from PulicError
    * @param {Boolean} showErrorNotice - indicates if notification needed to be shown
    */
-  async catchError(callback, defaultMessage, showErrorNotice = false) {
+  catchError = async (callback, defaultMessage, showErrorNotice = false) => {
     try {
       if (this.error) {
         this.logger.log('Error is already exist. No need in teh next actions.');
@@ -155,7 +156,7 @@ class App extends React.Component {
         await this.monday.errorNotice(errorMessage);
       }
     }
-  }
+  };
 
   /**
    * Changes the current state & logs changes
@@ -399,7 +400,7 @@ class App extends React.Component {
         cv
       );
     } catch (error) {
-      await fetchHook({ itemid: itemId });
+      await this.hooks.createPunchError({ itemid: itemId });
       await this.reloadData();
       throw error;
     }
@@ -599,16 +600,14 @@ class App extends React.Component {
           !isIdle
         );
       case BUTTON_TYPES.EndTask:
-        return (
-          (!startTimestamp && !endTimestamp) ||
-          (!!startTimestamp && !endTimestamp && !isIdle)
-        );
+        return !!startTimestamp && !endTimestamp && !isIdle;
       case BUTTON_TYPES.StartNextTask:
+        this.logger.log(this.state);
         return (
-          (startTimestamp || isIdle || (!!startTimestamp && !!endTimestamp)) &&
           nextItemId &&
           idleItemId !== itemId &&
           currentTask?.name &&
+          itemName !== 'Idle' &&
           !isIdle
         );
       case BUTTON_TYPES.StartIdleTime:
