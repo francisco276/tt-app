@@ -316,8 +316,9 @@ class App extends React.Component {
             this.logger.highlight('current active task is an IDLE task');
             this.changeState({ isIdle: true });
           }
-        } else {
-          // If current task is not active or does not exist
+        }
+        // If current task is not active or does not exist
+        else {
           this.logger.highlight('setting currentTask to {} from Load!');
           this.changeState({ currentTask: {} });
           await this.monday.setItemToStorage(this.state.userId, {});
@@ -509,19 +510,20 @@ class App extends React.Component {
 
         // If start is clicked
         if (columnId === this.state.start) {
-          const res = await this.monday.mutation.changeColumnValue(
-            this.state.boardId,
-            itemId,
-            this.state.end,
-            {}
-          );
-          this.logger.highlight('End is set to {}', res);
-          const currentTask = await this.monday.getItemFromStorage(
-            this.state.userId,
-            {}
-          );
+          if (this.state.endTimestamp) {
+            const res = await this.monday.mutation.changeColumnValue(
+              this.state.boardId,
+              itemId,
+              this.state.end,
+              {}
+            );
+            this.logger.highlight('End Time is set to {}', res);
+          }
           // If Start is clicked and current task is empty
-          if (_.isEmpty(currentTask) || !currentTask?.id) {
+          if (
+            _.isEmpty(this.state.currentTask) ||
+            !this.state.currentTask?.id
+          ) {
             this.logger.highlight('start is clicked and current task is empty');
             await this.monday.setItemToStorage(
               this.state.userId,
@@ -543,7 +545,7 @@ class App extends React.Component {
             );
             await this.monday.mutation.changeColumnValue(
               this.state.boardId,
-              currentTask.id,
+              this.state.currentTask.id,
               this.state.end,
               dateobject
             );
@@ -551,7 +553,10 @@ class App extends React.Component {
               this.state.userId,
               result.data.change_column_value
             );
-            await this.getItemAndPunch(currentTask.id, openNextItemCard);
+            await this.getItemAndPunch(
+              this.state.currentTask.id,
+              openNextItemCard
+            );
             // If start next item was clicked, open the next item card. Otherwise reload
             if (openNextItemCard) {
               await this.monday.openItemCard(this.state.nextItemId);
