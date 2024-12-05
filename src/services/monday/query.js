@@ -1,4 +1,5 @@
 import {
+  DEFAULT_ITEMS_LIMIT,
   EPLOYEES_BOARD_ID,
   IDLE_NAME,
   MONDAY_API_VERSION,
@@ -86,7 +87,7 @@ export class MondayQuery {
       'getItemsPageByColumnValues',
       `query {
           items_page_by_column_values (
-            limit: 2,
+            limit: ${DEFAULT_ITEMS_LIMIT},
             board_id: ${boardId},
             columns: [{column_id: "dup__of_cfm", column_values: ["${userId}"]}]
           ) {
@@ -105,7 +106,7 @@ export class MondayQuery {
     return this.requestor.request(
       'getNextItemsPage',
       `query {
-          next_items_page (cursor:"${cursor}", limit: 2) {
+          next_items_page (cursor:"${cursor}", limit: ${DEFAULT_ITEMS_LIMIT}) {
             cursor
             items {
               id
