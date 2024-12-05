@@ -1,5 +1,17 @@
-const findColumnData = (source, columnId) =>
-  source.find((item) => item.id === columnId);
+import { findColumnData } from './helpers';
+
+// The next functions are just helpers for mapping punch board data
+const findColumn =
+  (fieldName, defaultValue = undefined, modifier = undefined) =>
+  (columnData, columnId) => {
+    const value =
+      findColumnData(columnData, columnId)?.[fieldName] ?? defaultValue;
+
+    return modifier && typeof modifier === 'function' ? modifier(value) : value;
+  };
+const getText = findColumn('text');
+const getDisplayValue = findColumn('display_value');
+const getValue = findColumn('value', '{}', JSON.parse);
 
 /**
  * Maps column data into the format needed to create an item on the punch board
@@ -7,52 +19,44 @@ const findColumnData = (source, columnId) =>
  * @param {String} itemName
  */
 export const mapToPunchBoardFormat = (columnData) => {
-  let start = JSON.parse(findColumnData(columnData, 'date')?.value || '{}');
+  let start = getValue(columnData, 'date');
   delete start.changed_at;
-  let end = JSON.parse(
-    findColumnData(columnData, 'dup__of_start')?.value || '{}'
-  );
+  let end = getValue(columnData, 'dup__of_start');
   delete end.changed_at;
 
   return {
     dropdown3: {
-      labels: [findColumnData(columnData, 'mirror0')?.display_value],
+      labels: [getDisplayValue(columnData, 'mirror0')],
     }, // Account
     dup__of_account_name6: {
-      labels: [findColumnData(columnData, 'mirror3')?.display_value],
+      labels: [getDisplayValue(columnData, 'mirror3')],
     }, // Opportunity
     dup__of_account_name: {
-      labels: [findColumnData(columnData, 'mirror81')?.display_value],
+      labels: [getDisplayValue(columnData, 'mirror81')],
     }, // PID
     label_1: {
-      label: findColumnData(columnData, 'dup__of_pid')?.text,
+      label: getText(columnData, 'dup__of_pid'),
     }, // Pod
     status59: {
-      labels: [findColumnData(columnData, 'dropdown')?.text],
+      labels: [getText(columnData, 'dropdown')],
     }, // Team
     dup__of_pod: {
-      label: findColumnData(columnData, 'dup__of_pod9')?.text,
+      label: getText(columnData, 'dup__of_pod9'),
     }, // Shift
     label: {
-      label: findColumnData(columnData, 'dup__of_pod')?.text,
+      label: getText(columnData, 'dup__of_pod'),
     }, // Task
-    numbers1: findColumnData(columnData, 'men__desplegable')?.text, // Frequency
-    status: findColumnData(columnData, 'status')?.text, // Client
-    texto_largo: findColumnData(columnData, 'text')?.text,
+    numbers1: getText(columnData, 'men__desplegable'), // Frequency
+    status: getText(columnData, 'status'), // Client
+    texto_largo: getText(columnData, 'text'),
     people0: {
-      personsAndTeams: JSON.parse(
-        findColumnData(columnData, 'dup__of_cfm')?.value || '{}'
-      )?.personsAndTeams,
+      personsAndTeams: getValue(columnData, 'dup__of_cfm')?.personsAndTeams,
     }, // CS
     dup__of_cs: {
-      personsAndTeams: JSON.parse(
-        findColumnData(columnData, 'person')?.value || '{}'
-      )?.personsAndTeams,
+      personsAndTeams: getValue(columnData, 'person')?.personsAndTeams,
     }, // CSM
     people: {
-      personsAndTeams: JSON.parse(
-        findColumnData(columnData, 'dup__of_cs')?.value || '{}'
-      )?.personsAndTeams,
+      personsAndTeams: getValue(columnData, 'dup__of_cs')?.personsAndTeams,
     }, // AS
     date: start, // Start Time date
     date_1: end, // End Time

@@ -13,7 +13,6 @@ import {
 
 import { ENV, IDLE_NAME } from './config/constants';
 import {
-  DEFAULT_ERROR,
   ERROR_CAN_NOT_GET_ITEM,
   ERROR_CONFIGURATION,
   ERROR_IDLE_ITEM_IS_ABSENT,
@@ -32,6 +31,11 @@ import { getMondayDateObject, isEmptyObject } from './utils/utils';
 import 'monday-ui-react-core/dist/main.css';
 import './App.css';
 import { Hooks } from './services/hooks';
+import {
+  getErrorMessage,
+  getNextItemFromTheList,
+  isContextValid,
+} from './utils/helpers';
 
 class App extends React.Component {
   constructor(props) {
@@ -110,7 +114,7 @@ class App extends React.Component {
       }
       await callback();
     } catch (error) {
-      const errorMessage = this.getErrorMessage(error, defaultMessage);
+      const errorMessage = getErrorMessage(error, defaultMessage);
 
       this.logger.error(error);
       this.setError(errorMessage);
@@ -161,33 +165,6 @@ class App extends React.Component {
   }
 
   /**
-   * Validates if all the data exists inside the context object
-   * @param {Object} context - context from the monday.com
-   * @returns
-   */
-  isContextValid(context) {
-    return (
-      !!context &&
-      !!context.data &&
-      !!context.data.itemId &&
-      !!context.data.boardId &&
-      !!context.data.theme &&
-      !!context.data.user?.id &&
-      !!context.data.appVersion.versionData
-    );
-  }
-
-  /**
-   * Generates an error message from the Error object
-   * @param {Error} error - Error object
-   * @param {String} defaultMessage - message that will be shown in case if error is not instance of PublicError
-   * @returns {String} an error message
-   */
-  getErrorMessage(error, defaultMessage = DEFAULT_ERROR) {
-    return error instanceof PublicError ? error.message : defaultMessage;
-  }
-
-  /**
    * Loads context from monday.com & saves the data to the app's state
    * Should run once after the application was loaded
    */
@@ -195,7 +172,7 @@ class App extends React.Component {
     const context = await this.monday.getContext();
     this.logger.highlight('context', context);
 
-    if (!this.isContextValid(context)) {
+    if (!isContextValid(context)) {
       throw new PublicError(ERROR_WRONG_ENVIRONMENT);
     }
 
@@ -314,23 +291,16 @@ class App extends React.Component {
       items = [...items, ...nextPageItems];
     }
 
-    const currentTaskIndex = this.state.currentTask?.id
-      ? items?.findIndex(
-          (item) => Number(item.id) === Number(this.state.currentTask?.id)
-        ) || -1
-      : -1;
-    const currentItemIndex =
-      items.findIndex(
-        (item) => Number(item.id) === Number(this.state.itemId)
-      ) || -1;
-    const index =
-      currentItemIndex > currentTaskIndex ? currentItemIndex : currentTaskIndex;
+    const nextItem = getNextItemFromTheList(
+      items,
+      this.state.itemId,
+      this.state.currentTask
+    );
 
-    const nextItem = items[index + 1];
     this.changeState({
       nextLoaded: true,
-      nextItemName: nextItem ? nextItem.name : '',
-      nextItemId: index === items.length - 1 ? '' : items[index + 1].id,
+      nextItemName: nextItem?.name || '',
+      nextItemId: nextItem?.id || '',
     });
   };
 
