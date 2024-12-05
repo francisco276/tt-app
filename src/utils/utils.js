@@ -1,5 +1,12 @@
-import moment from 'moment-timezone';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+import advancedFormat from 'dayjs/plugin/advancedFormat';
 import { DEFAULT_TIME_FORMAT, DEFAULT_TIMEZONE } from '../config/constants';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+dayjs.extend(advancedFormat);
 
 /**
  * Imitates delay
@@ -12,9 +19,8 @@ export const sleep = (time) =>
  * Generates the current time
  * @returns {String}
  */
-export const getCurrentTime = () => {
-  return moment().tz(DEFAULT_TIMEZONE).format(DEFAULT_TIME_FORMAT);
-};
+export const getCurrentTime = () =>
+  dayjs().tz(DEFAULT_TIMEZONE).format(DEFAULT_TIME_FORMAT);
 
 /**
  * Generates monday date object and returns it back
