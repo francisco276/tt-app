@@ -1,20 +1,21 @@
 export const ERROR_SETTINGS_WERE_NOT_CONFIGURED =
-  'Start Task and/or End Task columns are not configured.';
+  'Please configure the Start Task and End Task columns to continue.';
 export const ERROR_WRONG_ENVIRONMENT =
-  'Some fields are missing in the context. Possibly wrong environment.';
+  'It seems some information is missing. This may be due to an incorrect environment setting.';
 export const ERROR_START_OR_END_ELEMENT_IS_ABSENT =
-  'Start and/or End element is absent.';
+  'Please ensure that both Start and End elements are present.';
 export const ERROR_IDLE_ITEM_IS_ABSENT =
-  'There is no linked Idle item to the board.';
+  'No linked Idle item found on your board. Please add one to continue.';
 export const ERROR_NO_LINKED_PUNCH_BOARD =
-  'There is not linked punch board. Please ask administrator for the help.';
+  'No linked punch board is available. Please contact your administrator for assistance.';
 export const ERROR_CAN_NOT_GET_ITEM =
-  'Can not retrieve an item from the server.';
+  'We were unable to retrieve the item from the server. Please try again.';
 export const ERROR_SERVER_ERROR =
-  'Server answered with the error. Please contact technical support in case it happens again.';
+  'An error occurred on the server. If this issue persists, please reach out to technical support for help.';
 export const ERROR_CONFIGURATION =
-  "Make sure you have an 'Idle' item on the top of your board, a 'Start' & 'End' date columns selected in the app settings. Then refresh.";
+  "Please ensure you have an 'Idle' item at the top of your board and that the 'Start' and 'End' date columns are selected in the app settings. After making changes, refresh the page.";
 export const ERROR_TIMEPUNCH_WAS_NOT_SAVED =
-  'Something happened. Timepunch was not saved.';
+  'Something went wrong, and your time entry could not be saved. Please try again.';
 
-export const DEFAULT_ERROR = 'Unexpected error. Please contact support.';
+export const DEFAULT_ERROR =
+  'An unexpected error occurred. Please contact support for help.';
