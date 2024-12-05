@@ -9,7 +9,6 @@ export class MondayMutation {
   }
 
   async createPunch(punchBoardId, itemName, columnValues) {
-    console.log('createPunch payload', columnValues);
     return this.requestor.request(
       'createPunch',
       `mutation create_item($boardId: ID!, $itemName: String!, $columnValue: JSON) {

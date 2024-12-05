@@ -11,7 +11,7 @@ import {
   BUTTON_TYPES,
 } from './components/ActionButton';
 
-import { ENV, IDLE_NAME } from './config/constants';
+import { IDLE_NAME } from './config/constants';
 import {
   ERROR_CAN_NOT_GET_ITEM,
   ERROR_CONFIGURATION,
@@ -27,9 +27,6 @@ import { MondayApi } from './services/monday/api';
 import { Logger } from './services/logger';
 import { mapToPunchBoardFormat } from './utils/mappers';
 import { getMondayDateObject, isEmptyObject } from './utils/utils';
-
-import 'monday-ui-react-core/dist/main.css';
-import './App.css';
 import { Hooks } from './services/hooks';
 import {
   getErrorMessage,
@@ -37,6 +34,9 @@ import {
   isButtonVisibleCreator,
   isContextValid,
 } from './utils/helpers';
+
+import 'monday-ui-react-core/dist/main.css';
+import './App.css';
 
 class App extends React.Component {
   constructor(props) {
@@ -196,18 +196,6 @@ class App extends React.Component {
     await this.monday.listen('settings', (res) => {
       this.logger.highlight('settings', res);
 
-      // For development purpose only
-      if (ENV === 'development') {
-        this.clearError();
-        this.changeState({
-          start: 'date',
-          end: 'dup__of_start',
-          logger: true,
-        });
-        this.logger.turnOn();
-        return;
-      }
-
       if (!res.data.start || !res.data.end) {
         this.changeState({ logger: res.data.logger });
         this.setError(ERROR_SETTINGS_WERE_NOT_CONFIGURED);
@@ -218,6 +206,7 @@ class App extends React.Component {
           end: Object.keys(res.data.end)[0],
           logger: res.data.logger,
         });
+        this.logger.setTurnedOn(res.data.logger);
       }
     });
   };
