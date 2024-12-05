@@ -34,6 +34,7 @@ import { Hooks } from './services/hooks';
 import {
   getErrorMessage,
   getNextItemFromTheList,
+  isButtonVisibleCreator,
   isContextValid,
 } from './utils/helpers';
 
@@ -539,54 +540,6 @@ class App extends React.Component {
   };
 
   /**
-   * Checks if the particular button should be shown to the user
-   * @param {String} type - value from the BUTTON_TYPES dictionary
-   * @returns {Boolean}
-   */
-  isButtonVisible(type) {
-    const {
-      startTimestamp,
-      endTimestamp,
-      isIdle,
-      nextItemId,
-      idleItemId,
-      currentTask,
-      itemId,
-      itemName,
-    } = this.state;
-
-    switch (type) {
-      case BUTTON_TYPES.StartTask:
-        return (
-          (!startTimestamp || isIdle || (!!startTimestamp && !!endTimestamp)) &&
-          itemName !== 'Idle' &&
-          !isIdle
-        );
-      case BUTTON_TYPES.EndTask:
-        return !!startTimestamp && !endTimestamp && !isIdle;
-      case BUTTON_TYPES.StartNextTask:
-        return (
-          nextItemId &&
-          idleItemId !== itemId &&
-          currentTask?.name &&
-          itemName !== 'Idle' &&
-          !isIdle
-        );
-      case BUTTON_TYPES.StartIdleTime:
-        return (
-          (!startTimestamp ||
-            (!!startTimestamp && !!endTimestamp) ||
-            (!!startTimestamp && !endTimestamp && !isIdle)) &&
-          !isIdle
-        );
-      case BUTTON_TYPES.EndIdleTime:
-        return !this.isButtonVisible(BUTTON_TYPES.StartIdleTime);
-      default:
-        return false;
-    }
-  }
-
-  /**
    * Renders the application
    */
   render() {
@@ -607,6 +560,8 @@ class App extends React.Component {
       version,
       errorMessage,
     } = this.state;
+
+    const isButtonVisible = isButtonVisibleCreator(this.state);
 
     return (
       <div
@@ -638,7 +593,7 @@ class App extends React.Component {
               >
                 <ActiveTask currentTask={this.state.currentTask} />
 
-                {this.isButtonVisible(BUTTON_TYPES.StartTask) && (
+                {isButtonVisible(BUTTON_TYPES.StartTask) && (
                   <ActionButton
                     loading={!loaded}
                     onClick={() => {
@@ -650,7 +605,7 @@ class App extends React.Component {
                   </ActionButton>
                 )}
 
-                {this.isButtonVisible(BUTTON_TYPES.EndTask) && (
+                {isButtonVisible(BUTTON_TYPES.EndTask) && (
                   <ActionButton
                     loading={!loaded}
                     onClick={() => {
@@ -662,7 +617,7 @@ class App extends React.Component {
                   </ActionButton>
                 )}
 
-                {this.isButtonVisible(BUTTON_TYPES.StartNextTask) && (
+                {isButtonVisible(BUTTON_TYPES.StartNextTask) && (
                   <ActionButton
                     disabled={!nextItemId}
                     loading={!loaded}
@@ -679,7 +634,7 @@ class App extends React.Component {
                   </ActionButton>
                 )}
 
-                {this.isButtonVisible(BUTTON_TYPES.StartIdleTime) ? (
+                {isButtonVisible(BUTTON_TYPES.StartIdleTime) ? (
                   <ActionButton
                     loading={!idleLoaded}
                     onClick={() => {

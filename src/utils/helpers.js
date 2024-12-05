@@ -1,3 +1,4 @@
+import { BUTTON_TYPES } from '../components/ActionButton';
 import { DEFAULT_ERROR } from '../config/errors';
 import { PublicError } from '../errors/PublicError';
 
@@ -55,3 +56,57 @@ export const findColumnData = (source, columnId) =>
   Array.isArray(source)
     ? source.find((item) => item.id === columnId)
     : undefined;
+
+/**
+ * Creates a function with one {String} type parameter that will
+ * check if the particular button should be shown to the user.
+ * Created function will return {Boolean} value
+ * @param {Object} params - state of the application that includes needed parameters
+ */
+export const isButtonVisibleCreator =
+  ({
+    startTimestamp,
+    endTimestamp,
+    isIdle,
+    nextItemId,
+    idleItemId,
+    currentTask,
+    itemId,
+    itemName,
+  }) =>
+  (type) => {
+    switch (type) {
+      case BUTTON_TYPES.StartTask:
+        return (
+          (!startTimestamp || isIdle || (!!startTimestamp && !!endTimestamp)) &&
+          itemName !== 'Idle' &&
+          !isIdle
+        );
+      case BUTTON_TYPES.EndTask:
+        return !!startTimestamp && !endTimestamp && !isIdle;
+      case BUTTON_TYPES.StartNextTask:
+        return (
+          nextItemId &&
+          idleItemId !== itemId &&
+          currentTask?.name &&
+          itemName !== 'Idle' &&
+          !isIdle
+        );
+      case BUTTON_TYPES.StartIdleTime:
+        return (
+          (!startTimestamp ||
+            (!!startTimestamp && !!endTimestamp) ||
+            (!!startTimestamp && !endTimestamp && !isIdle)) &&
+          !isIdle
+        );
+      case BUTTON_TYPES.EndIdleTime:
+        return !(
+          (!startTimestamp ||
+            (!!startTimestamp && !!endTimestamp) ||
+            (!!startTimestamp && !endTimestamp && !isIdle)) &&
+          !isIdle
+        );
+      default:
+        return false;
+    }
+  };
