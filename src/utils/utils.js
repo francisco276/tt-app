@@ -41,3 +41,9 @@ export const getMondayDateObject = (date) => {
     time: `${hours}:${minutes}:${seconds}`,
   };
 };
+
+export const isEmptyObject = (object) =>
+  object === undefined ||
+  object === null ||
+  (object instanceof Object && !Object.keys(object).length) ||
+  !(object instanceof Object);

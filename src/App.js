@@ -1,5 +1,4 @@
 import React from 'react';
-import _ from 'lodash';
 
 import { Loading } from './components/Loading';
 import { Error } from './components/Error';
@@ -28,7 +27,7 @@ import { PublicError } from './errors/PublicError';
 import { MondayApi } from './services/monday/api';
 import { Logger } from './services/logger';
 import { mapToPunchBoardFormat } from './utils/mappers';
-import { getMondayDateObject } from './utils/utils';
+import { getMondayDateObject, isEmptyObject } from './utils/utils';
 
 import 'monday-ui-react-core/dist/main.css';
 import './App.css';
@@ -305,25 +304,25 @@ class App extends React.Component {
       this.state.userId
     );
     let cursor = firstPage.data?.items_page_by_column_values?.cursor;
-    let items = firstPage.data?.items_page_by_column_values?.items;
+    let items = firstPage.data?.items_page_by_column_values?.items || [];
 
     while (cursor) {
       // loop will stop when cursor is null
       const nextPage = await this.monday.query.getNextItemsPage(cursor);
-      cursor = nextPage.data.next_items_page.cursor;
-      items = _.flatten(_.union(items, nextPage.data.next_items_page.items));
+      const nextPageItems = nextPage.data.next_items_page?.items || [];
+      cursor = nextPage.data.next_items_page?.cursor;
+      items = [...items, ...nextPageItems];
     }
 
     const currentTaskIndex = this.state.currentTask?.id
-      ? _.findIndex(
-          items,
+      ? items?.findIndex(
           (item) => Number(item.id) === Number(this.state.currentTask?.id)
-        )
+        ) || -1
       : -1;
-    const currentItemIndex = _.findIndex(
-      items,
-      (item) => Number(item.id) === Number(this.state.itemId)
-    );
+    const currentItemIndex =
+      items.findIndex(
+        (item) => Number(item.id) === Number(this.state.itemId)
+      ) || -1;
     const index =
       currentItemIndex > currentTaskIndex ? currentItemIndex : currentTaskIndex;
 
@@ -347,7 +346,7 @@ class App extends React.Component {
     );
 
     // If current task exists in the storage
-    if (!_.isEmpty(currentTask)) {
+    if (!isEmptyObject(currentTask)) {
       // If current task has an ID inside
       if (!!currentTask?.id) {
         const res = await this.monday.query.getDateRangeColumnsByIdsForItem(
@@ -423,9 +422,8 @@ class App extends React.Component {
       throw new PublicError(ERROR_CAN_NOT_GET_ITEM);
     }
 
-    // const itemName = response.data?.items?.[0]?.name;
-    const startElement = _.find(columnValues, (cv) => cv.id === startColumnId);
-    const endElement = _.find(columnValues, (cv) => cv.id === endColumnId);
+    const startElement = columnValues.find((cv) => cv.id === startColumnId);
+    const endElement = columnValues.find((cv) => cv.id === endColumnId);
 
     // Columns does not exist
     if (!startElement || !endElement) {
@@ -501,18 +499,17 @@ class App extends React.Component {
 
         // If start is clicked
         if (columnId === this.state.start) {
-          if (this.state.endTimestamp) {
-            const res = await this.monday.mutation.changeColumnValue(
-              this.state.boardId,
-              itemId,
-              this.state.end,
-              {}
-            );
-            this.logger.highlight('End Time is set to {}', res);
-          }
+          const res = await this.monday.mutation.changeColumnValue(
+            this.state.boardId,
+            itemId,
+            this.state.end,
+            {}
+          );
+          this.logger.highlight('End Time is set to {}', res);
+
           // If Start is clicked and current task is empty
           if (
-            _.isEmpty(this.state.currentTask) ||
+            isEmptyObject(this.state.currentTask) ||
             !this.state.currentTask?.id
           ) {
             this.logger.highlight('start is clicked and current task is empty');

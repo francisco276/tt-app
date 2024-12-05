@@ -1,8 +1,5 @@
-import _ from 'lodash';
-
-const findColumnData = (source, columnId) => {
-  return _.find(source, (item) => item.id === columnId);
-};
+const findColumnData = (source, columnId) =>
+  source.find((item) => item.id === columnId);
 
 /**
  * Maps column data into the format needed to create an item on the punch board

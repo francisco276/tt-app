@@ -86,7 +86,7 @@ export class MondayQuery {
       'getItemsPageByColumnValues',
       `query {
           items_page_by_column_values (
-            limit: 100,
+            limit: 2,
             board_id: ${boardId},
             columns: [{column_id: "dup__of_cfm", column_values: ["${userId}"]}]
           ) {
@@ -105,7 +105,7 @@ export class MondayQuery {
     return this.requestor.request(
       'getNextItemsPage',
       `query {
-          next_items_page (cursor:"${cursor}", limit: 100) {
+          next_items_page (cursor:"${cursor}", limit: 2) {
             cursor
             items {
               id

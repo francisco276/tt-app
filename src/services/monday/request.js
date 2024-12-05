@@ -31,7 +31,7 @@ export class MondayRequest {
    * @param {Object} options - additional options
    */
   async request(label, query, options = undefined) {
-    const response = Promise.race([
+    const response = await Promise.race([
       this.monday.api(query, options),
       new Promise((_, reject) =>
         setTimeout(
