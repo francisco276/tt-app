@@ -89,7 +89,7 @@ class App extends React.Component {
    */
   componentDidMount() {
     this.catchError(async () => {
-      await this.loadSettings();
+      this.listenForSettingsChanges();
       await this.loadContext();
       await Promise.all([
         this.loadPunchBoard(),
@@ -187,26 +187,25 @@ class App extends React.Component {
   };
 
   /**
-   * Loads settings for the aplication
+   * Listens for settings changes
    * - (string)  Start Time column ID
    * - (string)  End Time column ID
    * - (boolean) Logger on/off
    */
-  loadSettings = async () => {
-    await this.monday.listen('settings', (res) => {
-      this.logger.highlight('settings', res);
+  listenForSettingsChanges = async () => {
+    this.monday.listen('settings', (res) => {
+      this.logger.forceHighlight('settings', res);
 
       if (!res.data.start || !res.data.end) {
-        this.changeState({ logger: res.data.logger });
         this.setError(ERROR_SETTINGS_WERE_NOT_CONFIGURED);
       } else {
+        this.logger.setTurnedOn(res.data.logger);
         this.clearError();
         this.changeState({
           start: Object.keys(res.data.start)[0],
           end: Object.keys(res.data.end)[0],
           logger: res.data.logger,
         });
-        this.logger.setTurnedOn(res.data.logger);
       }
     });
   };

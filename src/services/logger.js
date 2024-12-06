@@ -64,6 +64,20 @@ export class Logger {
   }
 
   /**
+   * Helper method to log the message with --force flag. First one will be highlighted
+   * @param {String} firstMessage
+   * @param {...any} restMessages
+   */
+  forceHighlight(firstMessage, ...restMessages) {
+    const prevState = this.turnedOn;
+    this.turnOn();
+    this.highlight(firstMessage, ...restMessages);
+    if (prevState === false) {
+      this.turnOff();
+    }
+  }
+
+  /**
    * Helper method to log the error to console
    * @param  {...any} messages - an array of any piece of data
    * @returns
