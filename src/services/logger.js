@@ -1,3 +1,4 @@
+import { Logger as LoggerApi } from "./logger-api"
 /**
  * Service that will log all the necessary information to the browser's console
  * In case of need, requests to monday.log can be added here
@@ -61,6 +62,7 @@ export class Logger {
       'color:rgb(202, 174, 135); font-weight: bold;',
       ...restMessages
     );
+    LoggerApi.info(firstMessage, restMessages)
   }
 
   /**
@@ -83,6 +85,7 @@ export class Logger {
    * @returns
    */
   error(...messages) {
+    LoggerApi.error('Error', messages)
     if (!this.turnedOn) {
       return;
     }
@@ -106,6 +109,10 @@ export class Logger {
     );
     this.log(`%c ${query}`, 'color: #bcbcbc');
     this.log(`%c Response`, 'background: #222222; color: #bada55', response);
+
+    LoggerApi.info(`API ${type} ${label}`)
+    LoggerApi.info(query)
+    LoggerApi.info('Response', response)
   }
 
   /**
@@ -114,5 +121,6 @@ export class Logger {
    */
   stateChange(newValues) {
     this.log(`%c State Changes`, 'color: #d9979d', newValues);
+    LoggerApi.info('State Changes', newValues)
   }
 }
