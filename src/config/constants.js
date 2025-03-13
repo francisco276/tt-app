@@ -12,3 +12,5 @@ export const IDLE_NAME = 'Idle';
 
 export const API_TIMEOUT = 60000; // in ms
 export const DEFAULT_ITEMS_LIMIT = 100;
+
+export const LOGS_API= 'https://e7bad-service-26041556-c4458420.us.monday.app/logs'
