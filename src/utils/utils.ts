@@ -12,7 +12,7 @@ dayjs.extend(advancedFormat);
  * Imitates delay
  * @param {Number} time
  */
-export const sleep = (time) =>
+export const sleep = (time: number) =>
   new Promise((resolve) => setTimeout(resolve, time));
 
 /**
@@ -26,7 +26,7 @@ export const getCurrentTime = () =>
  * Generates monday date object and returns it back
  * @param {Date} date
  */
-export const getMondayDateObject = (date) => {
+export const getMondayDateObject = (date: Date) => {
   // Get date in UTC
   const year = date.getFullYear();
   const month = ('0' + (date.getUTCMonth() + 1)).slice(-2);
@@ -42,7 +42,7 @@ export const getMondayDateObject = (date) => {
   };
 };
 
-export const isEmptyObject = (object) =>
+export const isEmptyObject = (object: undefined | null | object) =>
   object === undefined ||
   object === null ||
   (object instanceof Object && !Object.keys(object).length) ||

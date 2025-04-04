@@ -1,13 +1,15 @@
-import { BUTTON_TYPES } from '../components/ActionButton';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { BUTTON_TYPES } from '../const/button-types';
 import { DEFAULT_ERROR } from '../config/errors';
 import { PublicError } from '../errors/PublicError';
+import type { AppState, MondatColumnValue, MondayItem, Task } from '../types';
 
 /**
  * Validates if all the data exists inside the context object
  * @param {Object} context - context from the monday.com
  * @returns
  */
-export const isContextValid = (context) =>
+export const isContextValid = (context: any) =>
   !!context &&
   !!context.data &&
   !!context.data.itemId &&
@@ -22,7 +24,7 @@ export const isContextValid = (context) =>
  * @param {String} defaultMessage - message that will be shown in case if error is not instance of PublicError
  * @returns {String} an error message
  */
-export const getErrorMessage = (error, defaultMessage = DEFAULT_ERROR) =>
+export const getErrorMessage = (error: any, defaultMessage: string = DEFAULT_ERROR) =>
   error instanceof PublicError ? error.message : defaultMessage;
 
 /**
@@ -31,7 +33,7 @@ export const getErrorMessage = (error, defaultMessage = DEFAULT_ERROR) =>
  * @param {Number} itemId
  * @param {Object} currentTask
  */
-export const getNextItemFromTheList = (items, itemId, currentTask) => {
+export const getNextItemFromTheList = (items: MondayItem[], itemId: number | string, currentTask?: Task) => {
   const currentTaskIndex = currentTask?.id
     ? items?.findIndex((item) => Number(item.id) === Number(currentTask?.id)) ||
       -1
@@ -52,10 +54,11 @@ export const getNextItemFromTheList = (items, itemId, currentTask) => {
  * @param {String} columnId
  * @returns
  */
-export const findColumnData = (source, columnId) =>
+export const findColumnData = (source: MondatColumnValue[], columnId: string) =>
   Array.isArray(source)
     ? source.find((item) => item.id === columnId)
     : undefined;
+
 
 /**
  * Creates a function with one {String} type parameter that will
@@ -73,8 +76,8 @@ export const isButtonVisibleCreator =
     currentTask,
     itemId,
     itemName,
-  }) =>
-  (type) => {
+  }: AppState) =>
+  (type: string) => {
     switch (type) {
       case BUTTON_TYPES.StartTask:
         return (

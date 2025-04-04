@@ -1,9 +1,11 @@
+/* eslint-disable @typescript-eslint/no-unsafe-function-type */
 import { findColumnData } from './helpers';
+import type { MondatColumnValue } from '../types';
 
 // The next functions are just helpers for mapping punch board data
 const findColumn =
-  (fieldName, defaultValue = undefined, modifier = undefined) =>
-  (columnData, columnId) => {
+  (fieldName: string, defaultValue?: string, modifier?: Function) =>
+  (columnData: MondatColumnValue[], columnId: string) => {
     const value =
       findColumnData(columnData, columnId)?.[fieldName] ?? defaultValue;
 
@@ -18,10 +20,10 @@ const getValue = findColumn('value', '{}', JSON.parse);
  * @param {Object} columnData
  * @param {String} itemName
  */
-export const mapToPunchBoardFormat = (columnData) => {
-  let start = getValue(columnData, 'date');
+export const mapToPunchBoardFormat = (columnData: MondatColumnValue[]) => {
+  const start = getValue(columnData, 'date');
   delete start.changed_at;
-  let end = getValue(columnData, 'dup__of_start');
+  const end = getValue(columnData, 'dup__of_start');
   delete end.changed_at;
 
   return {
