@@ -1,4 +1,15 @@
-import React from 'react';
+type LogsProps = {
+  turnedOn: boolean;
+  userId: string;
+  currentTask: object| null | undefined;
+  isIdle: boolean | null;
+  loaded: boolean;
+  startTimestamp: string | undefined | null;
+  endTimestamp: string | undefined | null;
+  nextItemId: string | undefined | null;
+  error: boolean;
+  errorMessage: string;
+}
 
 export const Logs = ({
   turnedOn,
@@ -11,7 +22,7 @@ export const Logs = ({
   nextItemId,
   error,
   errorMessage,
-}) =>
+}: LogsProps) =>
   turnedOn ? (
     <div style={{ position: 'fixed', top: '10px', left: '10px' }}>
       <p>

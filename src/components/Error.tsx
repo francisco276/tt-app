@@ -1,8 +1,12 @@
-import React from 'react';
-import AttentionBox from 'monday-ui-react-core/dist/AttentionBox';
+import { AttentionBox } from '@vibe/core';
 import { DEFAULT_ERROR } from '../config/errors';
 
-export const Error = ({ title, errorMessage }) => (
+type ErrorProps = {
+  title?: string;
+  errorMessage: string;
+};
+
+export const Error = ({ title, errorMessage }: ErrorProps) => (
   <div style={{ width: '80%' }}>
     <AttentionBox
       title={title || 'Application Error'}

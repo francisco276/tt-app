@@ -1,5 +1,4 @@
-import React from 'react';
-import Loader from 'monday-ui-react-core/dist/Loader.js';
+import { Loader } from '@vibe/core';
 
 export const Loading = () => (
   <div>

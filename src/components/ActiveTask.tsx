@@ -1,8 +1,13 @@
-import AttentionBox from 'monday-ui-react-core/dist/AttentionBox';
-import React, { useEffect, useState } from 'react';
+import { AttentionBox } from '@vibe/core';
+import { useEffect, useState } from 'react';
 import { getCurrentTime } from '../utils/utils';
+import { Task } from '../types';
 
-export const ActiveTask = ({ currentTask }) => {
+type ActiveTaskProps = {
+  currentTask: Task
+};
+
+export const ActiveTask = ({ currentTask }: ActiveTaskProps) => {
   const [clock, setClock] = useState(getCurrentTime());
 
   useEffect(() => {
