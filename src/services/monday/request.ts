@@ -1,12 +1,17 @@
+import { MondayClientSdk } from 'monday-sdk-js';
 import { API_TIMEOUT } from '../../config/constants';
 import { ERROR_SERVER_ERROR } from '../../config/errors';
 import { PublicError } from '../../errors/PublicError';
+import { Logger } from '../logger';
+import { MondayResponse } from '../../types';
 
 /**
  * Requestor service for monday API
  */
 export class MondayRequest {
-  constructor(monday, logger) {
+  private logger: Logger;
+  private monday: MondayClientSdk;
+  constructor(monday: MondayClientSdk, logger: Logger) {
     this.monday = monday;
     this.logger = logger;
   }
@@ -16,7 +21,7 @@ export class MondayRequest {
    * @param {[String]} errors - errors list from th eserver
    * @returns
    */
-  getErrorMessage(errors) {
+  getErrorMessage(errors: string[]) {
     if (this.logger.isTurnedOn() === false) {
       return ERROR_SERVER_ERROR;
     }
@@ -30,7 +35,7 @@ export class MondayRequest {
    * @param {String} query - Query/Mutaiton
    * @param {Object} options - additional options
    */
-  async request(label, query, options = undefined) {
+  async request(label: string, query: string, options?: object) {
     const response = await Promise.race([
       this.monday.api(query, options),
       new Promise((_, reject) =>
@@ -39,7 +44,7 @@ export class MondayRequest {
           API_TIMEOUT
         )
       ),
-    ]);
+    ]) as MondayResponse;
 
     this.logger.api(label, query, response);
 

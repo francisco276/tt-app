@@ -1,14 +1,16 @@
 import { MONDAY_API_VERSION } from '../../config/constants';
+import { MondayRequest } from './request';
 
 /**
  * Stores methods to work with Monday GraphQL Mutations
  */
 export class MondayMutation {
-  constructor(requestor) {
+  private requestor: MondayRequest;
+  constructor(requestor: MondayRequest) {
     this.requestor = requestor;
   }
 
-  async createPunch(punchBoardId, itemName, columnValues) {
+  async createPunch(punchBoardId: string, itemName: string, columnValues: object) {
     return this.requestor.request(
       'createPunch',
       `mutation create_item($boardId: ID!, $itemName: String!, $columnValue: JSON) {
@@ -27,7 +29,7 @@ export class MondayMutation {
     );
   }
 
-  async changeColumnValue(boardId, itemId, columnId, data) {
+  async changeColumnValue(boardId: string, itemId: string | number, columnId: string, data: object) {
     const value = JSON.stringify(JSON.stringify(data));
 
     return this.requestor.request(

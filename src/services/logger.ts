@@ -1,10 +1,13 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Logger as LoggerApi } from "./logger-api"
 /**
  * Service that will log all the necessary information to the browser's console
  * In case of need, requests to monday.log can be added here
  */
 export class Logger {
-  constructor(turnedOn = false, fn = 'log') {
+  private turnedOn: boolean;
+  private fn: 'log' | 'info' | 'warn' | 'error' | 'debug';
+  constructor(turnedOn = false, fn: 'log' | 'info' | 'warn' | 'error' | 'debug' = 'log') {
     this.turnedOn = turnedOn;
     this.fn = fn; // log, trace, info...
   }
@@ -13,7 +16,7 @@ export class Logger {
    * Sets the turned on flag
    * @param {Boolean} turnedOn
    */
-  setTurnedOn(turnedOn) {
+  setTurnedOn(turnedOn: boolean) {
     this.turnedOn = Boolean(turnedOn);
   }
 
@@ -44,7 +47,7 @@ export class Logger {
    * @param  {...any} messages
    * @returns
    */
-  log(...messages) {
+  log<T extends any[]>(...messages: T): void {
     if (!this.turnedOn) {
       return;
     }
@@ -56,7 +59,7 @@ export class Logger {
    * @param {String} firstMessage
    * @param {...any} restMessages
    */
-  highlight(firstMessage, ...restMessages) {
+  highlight(firstMessage: string, ...restMessages: any[]) {
     this.log(
       `%c ${firstMessage}`,
       'color:rgb(202, 174, 135); font-weight: bold;',
@@ -70,7 +73,7 @@ export class Logger {
    * @param {String} firstMessage
    * @param {...any} restMessages
    */
-  forceHighlight(firstMessage, ...restMessages) {
+  forceHighlight(firstMessage: string, ...restMessages: any) {
     const prevState = this.turnedOn;
     this.turnOn();
     this.highlight(firstMessage, ...restMessages);
@@ -84,7 +87,7 @@ export class Logger {
    * @param  {...any} messages - an array of any piece of data
    * @returns
    */
-  error(...messages) {
+  error<T extends any[]>(...messages: T) {
     LoggerApi.error('Error', messages)
     if (!this.turnedOn) {
       return;
@@ -98,7 +101,7 @@ export class Logger {
    * @param {String} query - query or mutation
    * @param {any} response - data from the server
    */
-  api(label, query, response) {
+  api(label: string, query: string, response: object) {
     const type = query.split(' ')[0].toUpperCase();
     this.log(
       `%c API ${type} %c ${label}`,
@@ -119,7 +122,7 @@ export class Logger {
    * Helper method to log any state changes
    * @param {Object} newValues
    */
-  stateChange(newValues) {
+  stateChange(newValues: object) {
     this.log(`%c State Changes`, 'color: #d9979d', newValues);
     LoggerApi.info('State Changes', newValues)
   }

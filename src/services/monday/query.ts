@@ -6,16 +6,18 @@ import {
   PEOPLE_COLUMN_ID,
   TIMEPUNCH_CURRENT_COLUMN_ID,
 } from '../../config/constants';
+import { MondayRequest } from './request';
 
 /**
  * Stores methods to work with Monday GraphQL Queries
  */
 export class MondayQuery {
-  constructor(requestor) {
+  private requestor: MondayRequest;
+  constructor(requestor: MondayRequest) {
     this.requestor = requestor;
   }
 
-  async getDateRangeColumnsByIdsForItem(itemId, startColumnId, endColumnId) {
+  async getDateRangeColumnsByIdsForItem(itemId: string | number, startColumnId: string | number, endColumnId: string | number) {
     return this.requestor.request(
       'getDateRangeColumnsByIdsForItem',
       `query {
@@ -32,7 +34,7 @@ export class MondayQuery {
     );
   }
 
-  async getPunchBoard(userId) {
+  async getPunchBoard(userId: string | number) {
     return this.requestor.request(
       'getPunchBoard',
       `query {
@@ -50,7 +52,7 @@ export class MondayQuery {
     );
   }
 
-  async getItemById(itemId) {
+  async getItemById(itemId: string | number) {
     return this.requestor.request(
       'getItemById',
       `query {
@@ -71,7 +73,7 @@ export class MondayQuery {
     );
   }
 
-  async getItemNameById(itemId) {
+  async getItemNameById(itemId: string | number) {
     return this.requestor.request(
       'getItemNameById',
       `query {
@@ -82,7 +84,7 @@ export class MondayQuery {
     );
   }
 
-  async getItemsPageByColumnValues(boardId, userId) {
+  async getItemsPageByColumnValues(boardId: string | number, userId: string | number) {
     return this.requestor.request(
       'getItemsPageByColumnValues',
       `query {
@@ -102,7 +104,7 @@ export class MondayQuery {
     );
   }
 
-  async getNextItemsPage(cursor) {
+  async getNextItemsPage(cursor: string) {
     return this.requestor.request(
       'getNextItemsPage',
       `query {
@@ -118,7 +120,7 @@ export class MondayQuery {
     );
   }
 
-  async getIdleColumnByBoardId(boardId, userId) {
+  async getIdleColumnByBoardId(boardId: string, userId: string | number) {
     return this.requestor.request(
       'getIdleColumnByBoardId',
       `query {

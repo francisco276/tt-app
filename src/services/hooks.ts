@@ -1,5 +1,8 @@
+import { Logger } from "./logger";
+
 export class Hooks {
-  constructor(logger) {
+  private logger: Logger;
+  constructor(logger: Logger) {
     this.logger = logger;
   }
 
@@ -8,7 +11,7 @@ export class Hooks {
    * @param {Object} dataObject
    * @returns
    */
-  createPunchError(dataObject) {
+  createPunchError(dataObject: { itemid: string | number }) {
     this.logger.highlight('[Hooks] createPunchError triggered', dataObject);
 
     try {
