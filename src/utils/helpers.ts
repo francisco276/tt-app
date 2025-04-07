@@ -2,7 +2,7 @@
 import { BUTTON_TYPES } from '../const/button-types';
 import { DEFAULT_ERROR } from '../config/errors';
 import { PublicError } from '../errors/PublicError';
-import type { AppState, MondatColumnValue, MondayItem, Task } from '../types';
+import type { MondatColumnValue, MondayItem, Task } from '../types';
 
 /**
  * Validates if all the data exists inside the context object
@@ -76,7 +76,7 @@ export const isButtonVisibleCreator =
     currentTask,
     itemId,
     itemName,
-  }: AppState) =>
+  }: any) =>
   (type: string) => {
     switch (type) {
       case BUTTON_TYPES.StartTask:
