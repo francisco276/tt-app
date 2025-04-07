@@ -127,3 +127,40 @@ export type AppState = {
   nextItemName: string; // Next task name
   nextItemId: string; // Next task ID
 }
+
+export type AppError = {
+  error: boolean
+  message: string
+}
+
+export type AppContext = {
+  itemId: string
+  userId: string
+  boardId: string
+  idleItemId: string
+  userPunchesBoardID: string
+  version: string
+  theme: string
+}
+
+export type AppSettings = {
+  start: string
+  end: string
+  logger: boolean
+}
+
+export type NextItemState = {
+  nextLoaded: boolean
+  nextItemName: string
+  nextItemId: string
+}
+
+export type AppStateDefault = {
+  loaded: boolean; // Data was loaded
+  idleLoaded: boolean; // Idle task was loaded
+  itemName: string // Current (opened) item name
+  startTimestamp: string | null;
+  endTimestamp: string | null;
+  columnValues: MondatColumnValue[];
+  isIdle: boolean; // Shows if Idle task is active
+}
