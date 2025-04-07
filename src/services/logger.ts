@@ -122,8 +122,8 @@ export class Logger {
    * Helper method to log any state changes
    * @param {Object} newValues
    */
-  stateChange(newValues: object) {
-    this.log(`%c State Changes`, 'color: #d9979d', newValues);
+  stateChange(newValues: object, message?: string) {
+    this.log(`%c ${message || 'State Changes'}`, 'color: #d9979d', newValues);
     LoggerApi.info('State Changes', newValues)
   }
 }
