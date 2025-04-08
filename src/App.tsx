@@ -86,6 +86,9 @@ export default function App() {
 
 
   useEffect(() => {
+    const isContextValid = Object.values(context).every((value) => value !== '')
+    if (!isContextValid) return
+
     catchError(async () => {
       await Promise.all([
         loadData(),
