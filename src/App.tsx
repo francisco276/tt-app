@@ -355,8 +355,7 @@ export default function App() {
     ]);
   }
 
-  // const isButtonVisible = isButtonVisibleCreator(this.state);
-  const isButtonVisible = useMemo(() => isButtonVisibleCreator({
+  const isButtonVisible = isButtonVisibleCreator({
     startTimestamp: state.startTimestamp,
     endTimestamp: state.endTimestamp,
     isIdle: state.isIdle,
@@ -365,7 +364,7 @@ export default function App() {
     currentTask: currentTaskState,
     itemId: context.itemId,
     itemName: state.itemName
-  }), [state, currentTaskState, context, nextItemState])
+  })
   
   return (
       <div
