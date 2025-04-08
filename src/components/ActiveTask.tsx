@@ -2,6 +2,7 @@ import { AttentionBox } from '@vibe/core';
 import { useEffect, useState } from 'react';
 import { getCurrentTime } from '../utils/utils';
 import { Task } from '../types';
+import { Alert } from "@vibe/icons";
 
 type ActiveTaskProps = {
   currentTask: Task
@@ -22,7 +23,8 @@ export const ActiveTask = ({ currentTask }: ActiveTaskProps) => {
 
   return (
     <AttentionBox
-      className="monday-style-attention-box_box"
+      className="custom-attention-box"
+      icon={() => <Alert />}
       text={`CST Time: ${clock}`}
       title={
         currentTask?.name

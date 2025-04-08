@@ -15,3 +15,25 @@ p {
   align-items: center;
   justify-content: center;
 }
+
+.custom-attention-box {
+  padding: 24px;
+  font-size: 14px;
+  color: var(--primary-color);
+}
+
+.custom-attention-box svg {
+  color: var(--color-bright-blue);
+  height: 24px !important;
+  width: 24px !important;
+}
+
+.custom-attention-box div:first-child {
+  margin-bottom: 14px;
+}
+
+.custom-attention-box h5 {
+  margin-left: 8px;
+  font-size: 18px !important;
+  font-weight: 400 !important;
+}
