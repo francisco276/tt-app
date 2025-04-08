@@ -17,7 +17,7 @@ export const ActionButton = ({
 }: ActionButtonProps) => (
   <div style={{ padding: '10px ' }}>
     <Button
-      style={{ backgroundColor }}
+      style={{ backgroundColor, color: 'white' }}
       size={Button.sizes.LARGE}
       disabled={disabled}
       loading={loading}
