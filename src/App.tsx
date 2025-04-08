@@ -62,10 +62,7 @@ export default function App() {
   })
 
   function changeCurrentTask(values: Partial<Task>) {
-    setCurrentTaskState((state) => ({
-      ...state,
-      ...values,
-    }))
+    setCurrentTaskState(values)
     logger.stateChange(values, 'Current Task Changes')
   }
 
