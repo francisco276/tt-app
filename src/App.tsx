@@ -38,7 +38,7 @@ import "../node_modules/@vibe/core/dist/tokens/tokens.css";
 export default function App() {
 
   const logger = useMemo(() => new Logger(), [])
-  const monday = useMemo(() => new MondayApi(logger), [])
+  const monday = useMemo(() => new MondayApi(logger), [logger])
   const hooks = useMemo(() => new Hooks(logger), [logger])
 
   const [settings, setSettings] = useState<AppSettings>({
