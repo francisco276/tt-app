@@ -194,11 +194,12 @@ export default function App() {
     await getAndSetDateValues(
       settings.start,
       settings.end,
-      currentTask?.name === IDLE_NAME ? currentTask.id : context.itemId
+      currentTask?.name === IDLE_NAME ? currentTask.id : context.itemId,
+      currentTask
     );
   }
 
-  const getAndSetDateValues = async (startColumnId: string, endColumnId: string, itemId: number) => {
+  const getAndSetDateValues = async (startColumnId: string, endColumnId: string, itemId: number, currentTask: Task) => {
     const response = await monday.query.getDateRangeColumnsByIdsForItem(
       itemId,
       startColumnId,
@@ -227,7 +228,7 @@ export default function App() {
         columnValues,
         loaded: true,
         idleLoaded: true,
-        isIdle: startTimestamp && currentTaskState?.name === IDLE_NAME
+        isIdle: startTimestamp && currentTask?.name === IDLE_NAME
       });
     }
   }
