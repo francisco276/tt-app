@@ -322,11 +322,13 @@ export default function App() {
       if (!itemRes.data.items?.length) {
         throw new PublicError(ERROR_CAN_NOT_GET_ITEM)
       }
+      logger.highlight(`Before create punch: ${itemId} on board ${context.boardId} for user ${context.userId}`)
       await monday.mutation.createPunch(
         context.userPunchesBoardID,
         itemRes.data.items[0].name,
         mapToPunchBoardFormat(itemRes.data.items[0].column_values, context.boardId)
       );
+      logger.highlight(`Punch created for item ${itemId} on board ${context.boardId} for user ${context.userId}`)
     } catch (error) {
       await hooks.createPunchError({ itemid: itemId })
       await reloadData()
