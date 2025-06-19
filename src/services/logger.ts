@@ -101,7 +101,7 @@ export class Logger {
    * @param {String} query - query or mutation
    * @param {any} response - data from the server
    */
-  api(label: string, query: string, response: object) {
+  async api(label: string, query: string, response: object) {
     const type = query.split(' ')[0].toUpperCase();
     this.log(
       `%c API ${type} %c ${label}`,
@@ -113,9 +113,11 @@ export class Logger {
     this.log(`%c ${query}`, 'color: #bcbcbc');
     this.log(`%c Response`, 'background: #222222; color: #bada55', response);
 
-    LoggerApi.info(`API ${type} ${label}`)
-    LoggerApi.info(query)
-    LoggerApi.info('Response', response)
+    await Promise.all([
+      LoggerApi.info(`API ${type} ${label}`),
+      LoggerApi.info(query),
+      LoggerApi.info('Response', response)
+    ])
   }
 
   /**
