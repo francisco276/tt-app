@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-function-type */
 import { findColumnData } from './helpers';
 import type { MondatColumnValue } from '../types';
+import { EXTRA_BOARD_COLUMN_ID } from '../config/constants';
+import { isEmptyObject } from './utils';
 
 // The next functions are just helpers for mapping punch board data
 const findColumn =
@@ -20,11 +22,13 @@ const getValue = findColumn('value', '{}', JSON.parse);
  * @param {Object} columnData
  * @param {String} itemName
  */
-export const mapToPunchBoardFormat = (columnData: MondatColumnValue[]) => {
+export const mapToPunchBoardFormat = (columnData: MondatColumnValue[], boardId: string | number) => {
   const start = getValue(columnData, 'date');
   delete start.changed_at;
   const end = getValue(columnData, 'dup__of_start');
   delete end.changed_at;
+  const timeline = getValue(columnData, EXTRA_BOARD_COLUMN_ID)
+  delete timeline.changed_at
 
   return {
     dropdown3: {
@@ -61,6 +65,8 @@ export const mapToPunchBoardFormat = (columnData: MondatColumnValue[]) => {
       personsAndTeams: getValue(columnData, 'dup__of_cs')?.personsAndTeams,
     }, // AS
     date: start, // Start Time date
-    date_1: end, // End Time
+    date_1: end, // End Time,
+    taskboardid: boardId.toString(), // Task item id
+    ...(!isEmptyObject(timeline) && { projectdeadline: timeline}) // Timeline column
   };
 };
