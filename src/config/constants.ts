@@ -14,3 +14,5 @@ export const API_TIMEOUT = 60000; // in ms
 export const DEFAULT_ITEMS_LIMIT = 100;
 
 export const LOGS_API= 'https://live1-service-20441992-d66d53b8.us.monday.app/logs';
+
+export const EXTRA_BOARD_COLUMN_ID = 'date_mkrnzbd8'
