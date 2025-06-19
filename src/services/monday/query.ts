@@ -67,6 +67,10 @@ export class MondayQuery {
               id
               value
             }
+            ... on TimelineValue {
+              from
+              to
+            }
           }
         }
       }`
