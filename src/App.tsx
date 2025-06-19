@@ -325,7 +325,7 @@ export default function App() {
       await monday.mutation.createPunch(
         context.userPunchesBoardID,
         itemRes.data.items[0].name,
-        mapToPunchBoardFormat(itemRes.data.items[0].column_values)
+        mapToPunchBoardFormat(itemRes.data.items[0].column_values, context.boardId)
       );
     } catch (error) {
       await hooks.createPunchError({ itemid: itemId })
