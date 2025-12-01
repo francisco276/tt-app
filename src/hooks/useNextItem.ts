@@ -28,7 +28,7 @@ export const useNextItem = ({ monday, logger }: NextItemProps) => {
     userId: number | string
     itemId: number | string
     currentTask: Task
-  }) => {
+  }, message?: string) => {
     // Current task is stored under userId key in monday.storage
     const firstPage = await monday.query.getItemsPageByColumnValues(
       JSON.parse(boardId),
@@ -61,7 +61,7 @@ export const useNextItem = ({ monday, logger }: NextItemProps) => {
       nextLoaded: true,
       nextItemName: nextItem?.name || '',
       nextItemId: nextItem?.id || '',
-    }, 'Next Item Changes')
+    }, `Next Item Changes${message ? ` ${message}` : ''}`)
   }
 
   return {

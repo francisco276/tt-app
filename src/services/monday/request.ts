@@ -35,18 +35,18 @@ export class MondayRequest {
    * @param {String} query - Query/Mutaiton
    * @param {Object} options - additional options
    */
-  async request(label: string, query: string, options?: object) {
+  async request(label: string, query: string, options?: object, message?: string) {
     const response = await Promise.race([
       this.monday.api(query, options),
       new Promise((_, reject) =>
         setTimeout(
-          () => reject(new PublicError(`Request ${label} took too long.`)),
+          () => reject(new PublicError(`Request ${label} took too long.${message ? ` ${message}` : ''}`)),
           API_TIMEOUT
         )
       ),
     ]) as MondayResponse;
 
-    this.logger.api(label, query, response);
+    this.logger.api(label, query, response, options, message);
 
     if (response.errors?.length) {
       throw new PublicError(

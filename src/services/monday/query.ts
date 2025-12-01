@@ -17,7 +17,7 @@ export class MondayQuery {
     this.requestor = requestor;
   }
 
-  async getDateRangeColumnsByIdsForItem(itemId: string | number, startColumnId: string | number, endColumnId: string | number) {
+  async getDateRangeColumnsByIdsForItem(itemId: string | number, startColumnId: string | number, endColumnId: string | number, message?: string) {
     return this.requestor.request(
       'getDateRangeColumnsByIdsForItem',
       `query {
@@ -30,11 +30,13 @@ export class MondayQuery {
                 text
             }
         }
-      }`
+      }`,
+      { apiVersion: MONDAY_API_VERSION },
+      message
     );
   }
 
-  async getPunchBoard(userId: string | number) {
+  async getPunchBoard(userId: string | number, message?: string) {
     return this.requestor.request(
       'getPunchBoard',
       `query {
@@ -48,11 +50,12 @@ export class MondayQuery {
             }
           }
         }`,
-      { apiVersion: MONDAY_API_VERSION }
+      { apiVersion: MONDAY_API_VERSION },
+      message
     );
   }
 
-  async getItemById(itemId: string | number) {
+  async getItemById(itemId: string | number, message?: string) {
     return this.requestor.request(
       'getItemById',
       `query {
@@ -73,22 +76,26 @@ export class MondayQuery {
             }
           }
         }
-      }`
+      }`,
+      { apiVersion: MONDAY_API_VERSION },
+      message
     );
   }
 
-  async getItemNameById(itemId: string | number) {
+  async getItemNameById(itemId: string | number, message?: string) {
     return this.requestor.request(
       'getItemNameById',
       `query {
             items (ids:${itemId}) {
                 name
             }
-        }`
+        }`,
+      { apiVersion: MONDAY_API_VERSION },
+      message
     );
   }
 
-  async getItemsPageByColumnValues(boardId: string | number, userId: string | number) {
+  async getItemsPageByColumnValues(boardId: string | number, userId: string | number, message?: string) {
     return this.requestor.request(
       'getItemsPageByColumnValues',
       `query {
@@ -104,11 +111,12 @@ export class MondayQuery {
             }
           }
         }`,
-      { apiVersion: MONDAY_API_VERSION }
+      { apiVersion: MONDAY_API_VERSION },
+      message
     );
   }
 
-  async getNextItemsPage(cursor: string) {
+  async getNextItemsPage(cursor: string, message?: string) {
     return this.requestor.request(
       'getNextItemsPage',
       `query {
@@ -120,11 +128,12 @@ export class MondayQuery {
             }
           }
       }`,
-      { apiVersion: MONDAY_API_VERSION }
+      { apiVersion: MONDAY_API_VERSION },
+      message
     );
   }
 
-  async getIdleColumnByBoardId(boardId: string, userId: string | number) {
+  async getIdleColumnByBoardId(boardId: string, userId: string | number, message?: string) {
     return this.requestor.request(
       'getIdleColumnByBoardId',
       `query {
@@ -136,7 +145,9 @@ export class MondayQuery {
                     }
                 }
             }
-        }`
+        }`,
+      { apiVersion: MONDAY_API_VERSION },
+      message
     );
   }
 }

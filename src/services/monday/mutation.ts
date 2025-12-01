@@ -10,7 +10,7 @@ export class MondayMutation {
     this.requestor = requestor;
   }
 
-  async createPunch(punchBoardId: string, itemName: string, columnValues: object) {
+  async createPunch(punchBoardId: string, itemName: string, columnValues: object, message?: string) {
     return this.requestor.request(
       'createPunch',
       `mutation create_item($boardId: ID!, $itemName: String!, $columnValue: JSON) {
@@ -25,11 +25,12 @@ export class MondayMutation {
           itemName,
           columnValue: JSON.stringify(columnValues),
         },
-      }
+      },
+      message
     );
   }
 
-  async changeColumnValue(boardId: string, itemId: string | number, columnId: string, data: object) {
+  async changeColumnValue(boardId: string, itemId: string | number, columnId: string, data: object, message?: string) {
     const value = JSON.stringify(JSON.stringify(data));
 
     return this.requestor.request(
@@ -39,7 +40,11 @@ export class MondayMutation {
             id
             name
         }
-      }`
+      }`,
+      {
+        apiVersion: MONDAY_API_VERSION,
+      },
+      message
     );
   }
 }

@@ -9,6 +9,6 @@ export default defineConfig({
   },
   server: {
     port: 8301,
-    allowedHosts: ['975b4bc7257b.apps-tunnel.monday.app']
+    allowedHosts: ['.apps-tunnel.monday.app']
   }
 })

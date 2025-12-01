@@ -49,7 +49,7 @@ export const useContext = ({ monday, logger }: ContextProps) => {
   }
 
   const getPunchBoard = async ({ userId }: { userId: number | string }) => {
-    const punchBoard = await monday.query.getPunchBoard(userId)
+    const punchBoard = await monday.query.getPunchBoard(userId, `- User: ${userId}`)
     const punchBoardId =
       punchBoard.data?.items_page_by_column_values?.items?.[0]
         ?.column_values?.[0]?.value;
@@ -62,7 +62,8 @@ export const useContext = ({ monday, logger }: ContextProps) => {
   const getIdleId = async ({ boardId, userId }: { boardId: string, userId: number | string }) => {
     const res = await monday.query.getIdleColumnByBoardId(
       boardId,
-      userId
+      userId,
+      `- User: ${userId}`
     );
 
     const idleItemId = res.data.boards?.[0]?.items_page?.items?.[0]?.id;
@@ -90,7 +91,7 @@ export const useContext = ({ monday, logger }: ContextProps) => {
         version: `${context.data.appVersion.versionData.major}.${context.data.appVersion.versionData.minor}`,
         userPunchesBoardID,
         idleItemId
-      }, 'Context changes')
+      }, `Context changes - User: ${context.data.user.id}`)
 
       return {
       ...state,

@@ -63,7 +63,7 @@ export default function App() {
 
   function changeCurrentTask(values: Partial<Task>) {
     setCurrentTaskState(values)
-    logger.stateChange(values, 'Current Task Changes')
+    logger.stateChange(values, `Current Task Changes - User: ${context.userId}`)
   }
 
   function changeState(values: Partial<AppStateDefault>) {
@@ -72,7 +72,7 @@ export default function App() {
       ...values,
     }))
 
-    logger.stateChange(values)
+    logger.stateChange(values, `State Changes - User: ${context.userId}`)
   }
   
 
@@ -97,7 +97,9 @@ export default function App() {
           userId: context.userId,
           itemId: context.itemId,
           currentTask: currentTaskState,
-        }),
+          },
+          `- User: ${context.userId}`
+        ),
         loadItemName(),
       ])     
     })
@@ -158,7 +160,8 @@ export default function App() {
         const res = await monday.query.getDateRangeColumnsByIdsForItem(
           currentTask.id,
           settings.start,
-          settings.end
+          settings.end,
+          `- User: ${context.userId}`
         )
 
         // check if start exists or was deleted by user / automation
@@ -173,19 +176,19 @@ export default function App() {
             endTimestamp: undefined,
           })
           if (currentTask.id === context.idleItemId) {
-            logger.highlight('current active task is an IDLE task');
+            logger.highlight(`current active task is an IDLE task - User: ${context.userId}`);
             changeState({ isIdle: true })
           }
         }
         // If current task is not active or does not exist
         else {
-          logger.highlight('setting currentTask to {} from Load!');
+          logger.highlight(`setting currentTask to {} from Load! - User: ${context.userId}`);
           changeCurrentTask({})
           await monday.setItemToStorage(context.userId, {});
         }
       } else {
         logger.highlight(
-          'Current task is empty. Re-write it in storage to {}'
+          `Current task is empty. Re-write it in storage to {} - User: ${context.userId}`
         );
         changeCurrentTask(currentTask)
       }
@@ -203,7 +206,8 @@ export default function App() {
     const response = await monday.query.getDateRangeColumnsByIdsForItem(
       itemId,
       startColumnId,
-      endColumnId
+      endColumnId,
+      `- User: ${context.userId}`
     );
     const columnValues = response.data?.items?.[0]?.column_values;
     if (!columnValues || !Array.isArray(columnValues)) {
@@ -251,7 +255,8 @@ export default function App() {
           context.boardId,
           itemId,
           columnId,
-          dateobject
+          dateobject,
+          `- User: ${context.userId}`
         );
 
         // If start is clicked
@@ -260,14 +265,15 @@ export default function App() {
             context.boardId,
             itemId,
             settings.end,
-            {}
+            {},
+            `- User: ${context.userId}`
           );
-          logger.highlight('End Time is set to {}', res);
+          logger.highlight(`End Time is set to {} - User: ${context.userId}`, res);
 
           
           // If Start is clicked and current task is empty
           if ( isEmptyObject(currentTaskState) || !currentTaskState?.id) {
-            logger.highlight('start is clicked and current task is empty');
+            logger.highlight(`start is clicked and current task is empty - User: ${context.userId}`);
             await monday.setItemToStorage(
               context.userId,
               result.data.change_column_value
@@ -277,14 +283,15 @@ export default function App() {
           }
           // If Start is clicked and another current task is being worked on
           else {
-            logger.highlight('start is clicked and another task is being worked on')
-            logger.highlight('setting current task', result.data.change_column_value)
+            logger.highlight(`start is clicked and another task is being worked on - User: ${context.userId}`)
+            logger.highlight(`setting current task - User: ${context.userId}`, result.data.change_column_value)
 
             await monday.mutation.changeColumnValue(
               context.boardId,
               currentTaskState.id,
               settings.end,
-              dateobject
+              dateobject,
+            `- User: ${context.userId}`
             )
             await monday.setItemToStorage(
               context.userId,
@@ -302,14 +309,14 @@ export default function App() {
           }
           // Else, end is clicked
         } else {
-          logger.highlight('end is clicked');
+          logger.highlight(`end is clicked - User: ${context.userId}`);
           await getItemAndPunch(itemId);
-          logger.highlight('setting current to {}');
+          logger.highlight(`setting current to {} - User: ${context.userId}`);
           changeCurrentTask({})
           await monday.setItemToStorage(context.userId, {});
           await reloadData();
         }
-        monday.successNotice('Timestamp saved!')
+        monday.successNotice(`Timestamp saved! - User: ${context.userId}`)
       },
       ERROR_TIMEPUNCH_WAS_NOT_SAVED,
       true
@@ -318,17 +325,18 @@ export default function App() {
 
   const getItemAndPunch = async (itemId: string | number) => {
     try {
-      const itemRes = await monday.query.getItemById(itemId)
+      const itemRes = await monday.query.getItemById(itemId, `- User: ${context.userId}`);
       if (!itemRes.data.items?.length) {
         throw new PublicError(ERROR_CAN_NOT_GET_ITEM)
       }
-      logger.highlight(`Before create punch: ${itemId} on board ${context.boardId} for user ${context.userId}`)
+      logger.highlight(`Before create punch: ${itemId} on board ${context.boardId} - User: ${context.userId}`)
       await monday.mutation.createPunch(
         context.userPunchesBoardID,
         itemRes.data.items[0].name,
-        mapToPunchBoardFormat(itemRes.data.items[0].column_values, context.boardId)
+        mapToPunchBoardFormat(itemRes.data.items[0].column_values, context.boardId),
+        `- User: ${context.userId}`
       );
-      logger.highlight(`Punch created for item ${itemId} on board ${context.boardId} for user ${context.userId}`)
+      logger.highlight(`Punch created for item ${itemId} on board ${context.boardId} - User: ${context.userId}`)
     } catch (error) {
       await hooks.createPunchError({ itemid: itemId })
       await reloadData()
@@ -337,7 +345,7 @@ export default function App() {
   }
 
   const loadItemName = async () => {
-    const res = await monday.query.getItemNameById(context.itemId);
+    const res = await monday.query.getItemNameById(context.itemId, `- User: ${context.userId}`);
     if (!res.data?.items?.[0]?.name) {
       throw new PublicError(ERROR_CAN_NOT_GET_ITEM);
     }
@@ -352,7 +360,9 @@ export default function App() {
         userId: context.userId,
         itemId: context.itemId,
         currentTask: currentTaskState,
-      }),
+        },
+        `- User: ${context.userId}`
+      ),
       loadItemName(),
     ]);
   }
