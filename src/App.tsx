@@ -4,7 +4,7 @@ import { useError, useContext, useNextItem } from './hooks';
 import { MondayApi } from './services/monday/api';
 import { Logger } from './services/logger';
 import { Hooks } from './services/hooks';
-import { PublicError } from './errors/PublicError';
+import { PublicError, ValidationError } from './errors/PublicError';
 
 import { getMondayDateObject, isEmptyObject } from './utils/utils';
 import {
@@ -113,10 +113,13 @@ export default function App() {
       }
       await callback()
     } catch (error) {
-      const errorMessage = getErrorMessage(error, defaultMessage)
-
+      let errorMessage = getErrorMessage(error, defaultMessage)
       logger.error(error)
-      setError(errorMessage)
+      if (error instanceof ValidationError) {
+        errorMessage = error.message
+      } else {
+        setError(errorMessage)
+      }
 
       if (showErrorNotice) {
         await monday.errorNotice(errorMessage)
