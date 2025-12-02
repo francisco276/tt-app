@@ -34,6 +34,7 @@ import { ActionButton } from './components/ActionButton';
 
 import './App.css';
 import "../node_modules/@vibe/core/dist/tokens/tokens.css";
+import { validateColumnDataForPunchBoard } from './utils/validation';
 
 export default function App() {
 
@@ -332,6 +333,8 @@ export default function App() {
       if (!itemRes.data.items?.length) {
         throw new PublicError(ERROR_CAN_NOT_GET_ITEM)
       }
+      validateColumnDataForPunchBoard(itemRes.data.items[0].column_values)
+
       logger.highlight(`Before create punch: ${itemId} on board ${context.boardId} - User: ${context.userId}`)
       await monday.mutation.createPunch(
         context.userPunchesBoardID,
