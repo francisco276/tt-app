@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-function-type */
 import { BUTTON_TYPES } from '../const/button-types';
 import { DEFAULT_ERROR } from '../config/errors';
 import { PublicError } from '../errors/PublicError';
@@ -59,6 +60,15 @@ export const findColumnData = (source: MondatColumnValue[], columnId: string) =>
     ? source.find((item) => item.id === columnId)
     : undefined;
 
+
+export const findColumn =
+(fieldName: string, defaultValue?: string, modifier?: Function) =>
+  (columnData: MondatColumnValue[], columnId: string) => {
+    const value =
+      findColumnData(columnData, columnId)?.[fieldName] ?? defaultValue;
+
+    return modifier && typeof modifier === 'function' ? modifier(value) : value;
+  }
 
 /**
  * Creates a function with one {String} type parameter that will
