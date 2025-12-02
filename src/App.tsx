@@ -254,17 +254,17 @@ export default function App() {
 
     await catchError(
       async () => {
-        // Set start/end column value
-        const result = await monday.mutation.changeColumnValue(
-          context.boardId,
-          itemId,
-          columnId,
-          dateobject,
-          `- User: ${context.userId}`
-        );
-
         // If start is clicked
         if (columnId === settings.start) {
+          // Set start/end column value
+          const result = await monday.mutation.changeColumnValue(
+            context.boardId,
+            itemId,
+            columnId,
+            dateobject,
+            `- User: ${context.userId}`
+          )
+
           const res = await monday.mutation.changeColumnValue(
             context.boardId,
             itemId,
@@ -316,6 +316,14 @@ export default function App() {
           logger.highlight(`end is clicked - User: ${context.userId}`);
           await getItemAndPunch(itemId);
           logger.highlight(`setting current to {} - User: ${context.userId}`);
+          // Set end column value
+          await monday.mutation.changeColumnValue(
+            context.boardId,
+            itemId,
+            columnId,
+            dateobject,
+            `- User: ${context.userId}`
+          )
           changeCurrentTask({})
           await monday.setItemToStorage(context.userId, {});
           await reloadData();
