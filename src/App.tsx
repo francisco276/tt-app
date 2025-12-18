@@ -313,9 +313,12 @@ export default function App() {
           }
           // Else, end is clicked
         } else {
-          logger.highlight(`end is clicked - User: ${context.userId}`);
-          await getItemAndPunch(itemId);
-          logger.highlight(`setting current to {} - User: ${context.userId}`);
+          const itemRes = await monday.query.getItemById(itemId, `- User: ${context.userId}`);
+          if (!itemRes.data.items?.length) {
+            throw new PublicError(ERROR_CAN_NOT_GET_ITEM)
+          }
+
+          validateColumnDataForPunchBoard(itemRes.data.items[0].column_values)
           // Set end column value
           await monday.mutation.changeColumnValue(
             context.boardId,
@@ -324,6 +327,10 @@ export default function App() {
             dateobject,
             `- User: ${context.userId}`
           )
+          logger.highlight(`end is clicked - User: ${context.userId}`);
+          await getItemAndPunch(itemId);
+          logger.highlight(`setting current to {} - User: ${context.userId}`);
+
           changeCurrentTask({})
           await monday.setItemToStorage(context.userId, {});
           await reloadData();
