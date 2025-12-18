@@ -16,10 +16,5 @@ export const validateColumnDataForPunchBoard = (columnData: MondatColumnValue[])
     throw new ValidationError('monday.com hasn’t synced the data yet. Please try again in a moment. (Opportunity)')
   }
 
-  const pid = getDisplayValue(columnData, 'mirror81')
-  if (!pid) {
-    throw new ValidationError('monday.com hasn’t synced the data yet. Please try again in a moment. (PID)')
-  }
-
   return true
 }
