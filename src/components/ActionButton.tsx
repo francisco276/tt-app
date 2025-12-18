@@ -17,13 +17,15 @@ export const ActionButton = ({
 }: ActionButtonProps) => (
   <div style={{ padding: '10px ' }}>
     <Button
-      style={{ backgroundColor, color: 'white' }}
+      style={{ backgroundColor, color: 'white', maxWidth: '250px' }}
       size={Button.sizes.LARGE}
       disabled={disabled}
       loading={loading}
       onClick={onClick}
     >
-      {children}
+      <div style={{ color: 'white', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+        { children }
+      </div>
     </Button>
   </div>
 );
