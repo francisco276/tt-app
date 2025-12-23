@@ -318,7 +318,7 @@ export default function App() {
             throw new PublicError(ERROR_CAN_NOT_GET_ITEM)
           }
 
-          validateColumnDataForPunchBoard(itemRes.data.items[0].column_values)
+          validateColumnDataForPunchBoard(itemRes.data.items[0].column_values, state.isIdle)
           // Set end column value
           await monday.mutation.changeColumnValue(
             context.boardId,
@@ -348,7 +348,7 @@ export default function App() {
       if (!itemRes.data.items?.length) {
         throw new PublicError(ERROR_CAN_NOT_GET_ITEM)
       }
-      validateColumnDataForPunchBoard(itemRes.data.items[0].column_values)
+      validateColumnDataForPunchBoard(itemRes.data.items[0].column_values, state.isIdle)
 
       logger.highlight(`Before create punch: ${itemId} on board ${context.boardId} - User: ${context.userId}`)
       await monday.mutation.createPunch(

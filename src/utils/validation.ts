@@ -4,7 +4,9 @@ import { findColumn } from './helpers';
 
 const getDisplayValue = findColumn('display_value')
 
-export const validateColumnDataForPunchBoard = (columnData: MondatColumnValue[]): boolean => {
+export const validateColumnDataForPunchBoard = (columnData: MondatColumnValue[], isIdle: boolean = false): boolean => {
+  if (isIdle) return true
+
   const account = getDisplayValue(columnData, 'mirror0')
 
   if (!account) {
