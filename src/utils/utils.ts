@@ -28,7 +28,7 @@ export const getCurrentTime = () =>
  */
 export const getMondayDateObject = (date: Date) => {
   // Get date in UTC
-  const year = date.getFullYear();
+  const year = date.getUTCFullYear();
   const month = ('0' + (date.getUTCMonth() + 1)).slice(-2);
   const day = ('0' + date.getUTCDate()).slice(-2);
   const hours = ('0' + date.getUTCHours()).slice(-2);
